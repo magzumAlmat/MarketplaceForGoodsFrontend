@@ -1,0 +1,9 @@
+node_modules
+/Uploads
+Uploads
+/Uploads/*
+*.jpg
+*.png
+*.pdf
+build
+/build
