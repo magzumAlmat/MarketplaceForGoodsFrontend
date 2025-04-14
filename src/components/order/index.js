@@ -12,7 +12,7 @@ const Order = () => {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/orders', {
+        const response = await axios.get('http://localhost:8000/api/store/orders', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setOrder(response.data);

@@ -14,7 +14,7 @@ const OrderDetails = ({ orderId, onGoBack }) => {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/api/orders/${orderId}`, {
+        const response = await axios.get(`http://localhost:8000/api/store/orders/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setOrder(response.data);
