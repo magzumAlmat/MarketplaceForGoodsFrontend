@@ -1,128 +1,159 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
-import Header from "@/components/header";
-import AddProductForm from "../addProduct";
-import AllOrders from "../allOrders";
+import { checkAuth, logoutAction } from "@/store/slices/authSlice";
+import {
+  Box,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Typography,
+  Button,
+  Divider,
+  CircularProgress,
+} from "@mui/material";
+import AddProductForm from "@/components/addProduct";
 import AllProducts from "@/components/allProducts";
-import { isAuthAction } from "@/store/slices/productSlice";
-import "bootstrap/dist/css/bootstrap.min.css";
+import AllOrders from "@/components/allOrders";
 
-export default function Admin() {
+const drawerWidth = 240;
+
+export default function AdminPanel() {
   const [component, setComponent] = useState("allProducts");
-  const isAuth = useSelector((state) => state.usercart.isAuth);
+  const { isAuth, currentUser } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        dispatch(isAuthAction({ isAuth: false, token: null }));
-        router.push("/login");
-        return;
-      }
+    let isMounted = true;
 
-      try {
-        const response = await fetch("http://localhost:8000/api/auth/check", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          dispatch(isAuthAction({ isAuth: data.role === "admin", token }));
-        } else {
-          localStorage.removeItem("token");
-          dispatch(isAuthAction({ isAuth: false, token: null }));
-          router.push("/login");
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        localStorage.removeItem("token");
-        dispatch(isAuthAction({ isAuth: false, token: null }));
-        router.push("/login");
+    const verifyAuth = async () => {
+      if (!isMounted || hasCheckedAuth) return;
+      console.log('AdminPanel: dispatching checkAuth');
+      setIsLoading(true);
+      await dispatch(checkAuth());
+      if (isMounted) {
+        console.log('AdminPanel: checkAuth completed');
+        setIsLoading(false);
+        setHasCheckedAuth(true);
       }
     };
-    checkAuth();
-  }, [dispatch, router]);
+
+    verifyAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch, hasCheckedAuth]);
+
+  useEffect(() => {
+    if (!isLoading && hasCheckedAuth) {
+      console.log('AdminPanel: checking redirect, isAuth:', isAuth);
+      if (!isAuth) {
+        console.log('AdminPanel: redirecting to /login');
+        router.push("/login");
+      }
+    }
+  }, [isAuth, isLoading, hasCheckedAuth, router]);
 
   const handleComponentSet = (value) => {
-    try {
-      setComponent(value);
-    } catch (e) {
-      console.error("Error setting component:", e);
-    }
+    setComponent(value);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    dispatch(isAuthAction({ isAuth: false, token: null }));
+    console.log('AdminPanel: logging out');
+    dispatch(logoutAction());
     router.push("/login");
   };
 
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 5 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!isAuth) {
+    console.log('AdminPanel: rendering null, expecting redirect');
+    return null;
+  }
+
   return (
-    <>
-      <Header />
-      {isAuth ? (
-        <div className="container mt-3">
-          <div className="row">
-            <div className="col-md-2">
-              <ul className="list-group">
-                <li className={`list-group-item ${component === "addProduct" ? "active" : ""}`}>
-                  <button
-                    onClick={() => handleComponentSet("addProduct")}
-                    className="btn btn-link w-100 text-left"
-                  >
-                    Добавить продукт
-                  </button>
-                </li>
-                <li className={`list-group-item ${component === "orders" ? "active" : ""}`}>
-                  <button
-                    onClick={() => handleComponentSet("orders")}
-                    className="btn btn-link w-100 text-left"
-                  >
-                    Просмотр заказов
-                  </button>
-                </li>
-                <li className={`list-group-item ${component === "allProducts" ? "active" : ""}`}>
-                  <button
-                    onClick={() => handleComponentSet("allProducts")}
-                    className="btn btn-link w-100 text-left"
-                  >
-                    Все продукты
-                  </button>
-                </li>
-                <li className="list-group-item">
-                  <button
-                    onClick={handleLogout}
-                    className="btn btn-danger w-100"
-                  >
-                    Выйти
-                  </button>
-                </li>
-              </ul>
-            </div>
-            <div className="col-md-10">
-              {component === "addProduct" && <AddProductForm />}
-              {component === "orders" && <AllOrders />}
-              {component === "allProducts" && <AllProducts useEffectStart={true} />}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="container mt-5 text-center">
-          <h4>Вы не авторизованы</h4>
-          <p>Пожалуйста, войдите в систему, чтобы получить доступ к админ-панели.</p>
-          <button
-            className="btn btn-primary"
-            onClick={() => router.push("/login")}
+    <Box sx={{ display: "flex" }}>
+      <Drawer
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
+        }}
+        variant="permanent"
+        anchor="left"
+      >
+        <Typography variant="h6" sx={{ p: 2 }}>
+          Админ-панель
+        </Typography>
+        <Divider />
+        <List>
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={component === "addProduct"}
+              onClick={() => handleComponentSet("addProduct")}
+            >
+              <ListItemText primary="Добавить продукт" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={component === "allProducts"}
+              onClick={() => handleComponentSet("allProducts")}
+            >
+              <ListItemText primary="Все продукты" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={component === "orders"}
+              onClick={() => handleComponentSet("orders")}
+            >
+              <ListItemText primary="Все заказы" />
+            </ListItemButton>
+          </ListItem>
+        </List>
+        <Divider />
+        <Box sx={{ p: 2 }}>
+          <Button
+            variant="contained"
+            color="error"
+            fullWidth
+            onClick={handleLogout}
           >
-            Войти
-          </button>
-        </div>
-      )}
-    </>
+            Выйти
+          </Button>
+        </Box>
+      </Drawer>
+      <Box
+        component="main"
+        sx={{ flexGrow: 1, p: 3, bgcolor: "#f5f5f5", minHeight: "100vh" }}
+      >
+        <Typography variant="h4" gutterBottom>
+          {component === "addProduct" && "Добавить продукт"}
+          {component === "allProducts" && "Все продукты"}
+          {component === "orders" && "Все заказы"}
+        </Typography>
+        {component === "addProduct" && <AddProductForm />}
+        {component === "allProducts" && <AllProducts />}
+        {component === "orders" && <AllOrders />}
+      </Box>
+    </Box>
   );
 }

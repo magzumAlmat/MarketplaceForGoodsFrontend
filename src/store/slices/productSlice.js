@@ -6,14 +6,13 @@ let initialState = {
   allProducts: [],
   allOrders: [],
   isAuth: false,
-  token: null,
   order: {},
+  
   editedOrder: {},
   editedProduct: null,
   selectedMainType: "Все товары",
   selectedType: "",
   clickCount: 0,
- 
   host: 'http://localhost:8000/api/store/'
 };
 

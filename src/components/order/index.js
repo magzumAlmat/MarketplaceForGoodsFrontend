@@ -37,23 +37,23 @@ export default function Order() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell classname="mobile__fs_10">Название</TableCell>
-                  <TableCell classname="mobile__fs_10">Тип</TableCell>
-                  <TableCell classname="mobile__fs_10">Цена</TableCell>
-                  <TableCell classname="mobile__fs_10">Количество</TableCell>
-                  <TableCell classname="mobile__fs_10">Сумма</TableCell>
+                  <TableCell className="mobile__fs_10">Название</TableCell>
+                  <TableCell className="mobile__fs_10">Тип</TableCell>
+                  <TableCell className="mobile__fs_10">Цена</TableCell>
+                  <TableCell className="mobile__fs_10">Количество</TableCell>
+                  <TableCell className="mobile__fs_10">Сумма</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {data.map((item, index) => (
                   <TableRow key={item.id}>
-                    <TableCell classname="mobile__fs_10">{item.name}</TableCell>
-                    <TableCell classname="mobile__fs_10">{item.type}</TableCell>
-                    <TableCell classname="mobile__fs_10">
+                    <TableCell className="mobile__fs_10">{item.name}</TableCell>
+                    <TableCell className="mobile__fs_10">{item.type}</TableCell>
+                    <TableCell className="mobile__fs_10">
                       {item.price.toLocaleString()}₸
                     </TableCell>
                     <TableCell align="center">{item.count}</TableCell>
-                    <TableCell classname="mobile__fs_10">
+                    <TableCell className="mobile__fs_10">
                       {(item.price * item.count).toLocaleString()}₸
                     </TableCell>
                   </TableRow>

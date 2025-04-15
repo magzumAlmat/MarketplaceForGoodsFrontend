@@ -19,6 +19,7 @@ import {
   setSelectedMainTypeReducer,
   setSelectedTypeReducer,
 } from "@/store/slices/productSlice";
+import { logoutAction } from "@/store/slices/authSlice";
 
 export default function Header() {
   const clickCount = useSelector((state) => state.usercart.clickCount);
@@ -88,6 +89,12 @@ export default function Header() {
               <div className="header__title">
                 <div className="header__title-text">SCVolokno.kz</div>
                 <div className="header__text">Cамые лучшие кабеля</div>
+              </div>
+            </Button>
+            <Button onClick={()=>{dispatch(logoutAction())}} className="btn">
+              <div className="header__title">
+                <div className="header__title-text">выход</div>
+               
               </div>
             </Button>
           </div>
