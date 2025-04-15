@@ -1,59 +1,85 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import logo from "/public/image/cable/cable_logo.png";
+
+import React, { useEffect } from "react";
 import Image from "next/image";
-import Button from "@mui/material/Button";
 import { useRouter } from "next/navigation";
-import { FormControl, MenuItem, Select } from "@mui/material";
-import {
-  Phone,
-  ShoppingBasket,
-  ShoppingCartOutlined,
-} from "@mui/icons-material";
-import MenuIcon from "@mui/icons-material/Menu";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  filterAllProductsReducer,
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  MenuItem,
+  Select,
+  FormControl,
+  Badge,
+  IconButton,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  Container,
+} from "@mui/material";
+import { styled } from "@mui/material/styles";
+import { Phone, ShoppingCartOutlined, Menu as MenuIcon } from "@mui/icons-material";
+import {
   getAllProductsAction,
-  getAllProductsReducer,
   setSelectedMainTypeReducer,
   setSelectedTypeReducer,
 } from "@/store/slices/productSlice";
 import { logoutAction } from "@/store/slices/authSlice";
+import logo from "/public/image/cable/cable_logo.png";
+
+// Стилизованные компоненты
+const StyledAppBar = styled(AppBar)(({ theme }) => ({
+  backgroundColor: "#ADD8E6", // Светло-голубой
+  boxShadow: "0 3px 15px rgba(0,0,0,0.1)",
+}));
+
+const StyledSelect = styled(Select)(({ theme }) => ({
+  color: "#333333", // Темно-серый
+  "& .MuiSelect-icon": {
+    color: "#333333",
+  },
+  "& .MuiOutlinedInput-notchedOutline": {
+    borderColor: "#ADD8E6",
+  },
+  "&:hover .MuiOutlinedInput-notchedOutline": {
+    borderColor: "#ADD8E6",
+  },
+}));
+
+const CartButton = styled(Button)(({ theme }) => ({
+  borderRadius: 20,
+  padding: "6px 16px",
+  textTransform: "none",
+  backgroundColor: "#FFFFE0", // Бледно-желтый
+  color: "#333333",
+  "&:hover": {
+    backgroundColor: "#FFFACD", // Светлее бледно-желтого
+  },
+}));
 
 export default function Header() {
-  const clickCount = useSelector((state) => state.usercart.clickCount);
-  const crossOptical = useSelector((state) => state.usercart.allProducts);
-  const selectedMainType = useSelector(
-    (state) => state.usercart.selectedMainType
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  const { clickCount, allProducts, selectedMainType, selectedType } = useSelector(
+    (state) => state.usercart
   );
 
-  const selectedType = useSelector((state) => state.usercart.selectedType);
-
-  const dispatch = useDispatch();
-
-  const uniqueMainTypes = [
-    ...new Set(crossOptical.map((item) => item.mainType)),
-  ];
+  const uniqueMainTypes = [...new Set(allProducts.map((item) => item.mainType))];
   const uniqueTypes = selectedMainType
-    ? [
-        ...new Set(
-          crossOptical
-            .filter((item) => item.mainType === selectedMainType)
-            .map((item) => item.type)
-        ),
-      ]
+    ? [...new Set(allProducts.filter((item) => item.mainType === selectedMainType).map((item) => item.type))]
     : [];
 
-  const router = useRouter();
+  useEffect(() => {
+    dispatch(getAllProductsAction());
+  }, [dispatch]);
 
-  const buttonClick = () => {
-    router.push("/cart");
-  };
-
-  const buttonClickHome = () => {
-    router.push("/");
-  };
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const handleNavItemClick = (mainType) => {
     dispatch(setSelectedMainTypeReducer(mainType));
@@ -64,171 +90,157 @@ export default function Header() {
     dispatch(setSelectedTypeReducer(event.target.value));
   };
 
-  useEffect(() => {
-    dispatch(getAllProductsAction());
-  }, []);
+  const handleLogout = () => {
+    dispatch(logoutAction());
+    router.push("/login");
+  };
+
+  // Мобильное меню
+  const drawer = (
+    <Box sx={{ width: 250, p: 2, backgroundColor: "#F5F5F5" }}>
+      <List>
+        <ListItem button onClick={() => router.push("/")}>
+          <ListItemText primary="Главная" />
+        </ListItem>
+        {uniqueMainTypes.map((type) => (
+          <ListItem button key={type} onClick={() => handleNavItemClick(type)}>
+            <ListItemText primary={type} />
+          </ListItem>
+        ))}
+        <ListItem button onClick={handleLogout}>
+          <ListItemText primary="Выход" />
+        </ListItem>
+      </List>
+    </Box>
+  );
 
   return (
     <>
-    <div className="width100">
-      <div className="phone">
-        <span id='slogan'>Мы работаем по всему Казахстану!</span>
-        <a href="tel:+77779618253">
-          <Phone color="primary" /> +7 (777) 961 82 53
-        </a>
-      </div>
-      <header className="header__container header">
-        <div className="header__container header__items d-flex align-items-center gap-1">
-          <div className="header__left align-items-center d-flex gap-1">
-            <Button onClick={buttonClickHome} className="btn">
-              <div className="header__logo">
-                <Image width="38" src={logo} alt="logo pizza" />
-              </div>
-            </Button>
-            <Button onClick={buttonClickHome} className="btn">
-              <div className="header__title">
-                <div className="header__title-text">SCVolokno.kz</div>
-                <div className="header__text">Cамые лучшие кабеля</div>
-              </div>
-            </Button>
-            <Button onClick={()=>{dispatch(logoutAction())}} className="btn">
-              <div className="header__title">
-                <div className="header__title-text">выход</div>
-               
-              </div>
-            </Button>
-          </div>
-          <div className="d-flex gap-2 catalog" id='dropDownSelectCategory'>
-            <FormControl
-              sx={{
-                minWidth: 100,
-                maxWidth: 170,
-                color: "white",
-                border: "none",
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderWidth: "0 !important",
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderWidth: "0 !important",
-                },
-                "& .MuiSelect-icon": {
-                  color: "white",
-                  cursor: "pointer",
-                },
-              }}
-            >
-              <Select
-                value={selectedMainType}
-                onChange={(event) => handleNavItemClick(event.target.value)}
-                displayEmpty
-                sx={{
-                  color: "white",
-                  "& .MuiSelect-select": {
-                    padding: "8px",
-                    fontSize: "16px",
-                    border: "0",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: "8px",
-                  },
-                }}
+      {/* Верхняя панель с контактами */}
+      <Box sx={{ bgcolor: "#F5F5F5", py: 1 }}>
+        <Container maxWidth="lg">
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="body2" color="#333333">
+              Мы работаем по всему Казахстану!
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Phone fontSize="small" color="primary" />
+              <Typography
+                variant="body2"
+                component="a"
+                href="tel:+77779618253"
+                sx={{ textDecoration: "none", color: "#333333" }}
               >
-                <MenuItem
-                 id="menu__item"
-                  value="Все товары"
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
-                  <MenuIcon style={{
-                    marginRight: "0.5rem"
-                  }} />Все</MenuItem>
+                +7 (777) 961 82 53
+              </Typography>
+            </Box>
+          </Box>
+        </Container>
+      </Box>
 
-                  <br></br>
-                {uniqueMainTypes.map((uniqueItem) => (
-                  <MenuItem className="second__dropdown" key={uniqueItem} value={uniqueItem}>
-                    <div className="dropdown__font">{uniqueItem}</div>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            {selectedMainType && (
-              <FormControl id='subCategory'
-                sx={{
-                  maxWidth: 200,
-                  color: "white",
-                  border: "none",
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderWidth: "0 !important",
-                  },
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderWidth: "0 !important",
-                  },
-                  "& .MuiSelect-icon": {
-                    color: "white",
-                  },
-                }}
-              >
-                <Select
-                  value={selectedType}
-                  onChange={handleTypeChange}
+      {/* Основной хедер */}
+      <StyledAppBar position="static">
+        <Container maxWidth="lg">
+          <Toolbar sx={{ justifyContent: "space-between" }}>
+            {/* Левая часть - логотип */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Button onClick={() => router.push("/")} sx={{ p: 0 }}>
+                <Image src={logo} alt="logo" width={38} height={38} />
+              </Button>
+              <Box>
+                <Typography variant="h6" sx={{ color: "#333333", fontWeight: "bold" }}>
+                  SCVolokno.kz
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#666666" }}>
+                  Самые лучшие кабеля
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Центральная часть - навигация (десктоп) */}
+            <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 2 }}>
+              <FormControl>
+                <StyledSelect
+                  value={selectedMainType || "Все товары"}
+                  onChange={(e) => handleNavItemClick(e.target.value)}
                   displayEmpty
-                  sx={{
-                    color: "white",
-                    "& .MuiSelect-select": {
-                      padding: "8px",
-                      fontSize: "16px",
-                      border: "0",
-                    },
-                  }}
                 >
-                  <MenuItem value="" disabled>
-
+                  <MenuItem value="Все товары">
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <MenuIcon sx={{ color: "#333333" }} />
+                      Все
+                    </Box>
                   </MenuItem>
-                  <MenuItem value="">Все</MenuItem>
-                  {uniqueTypes.map((type) => (
+                  {uniqueMainTypes.map((type) => (
                     <MenuItem key={type} value={type}>
                       {type}
                     </MenuItem>
                   ))}
-                </Select>
+                </StyledSelect>
               </FormControl>
-            )}
-          </div>
-          <div className="header__right">
-            {clickCount >= 1 ? (
-              <Button
-                onClick={buttonClick}
+
+              {selectedMainType && (
+                <FormControl>
+                  <StyledSelect
+                    value={selectedType || ""}
+                    onChange={handleTypeChange}
+                    displayEmpty
+                  >
+                    <MenuItem value="">Все подкатегории</MenuItem>
+                    {uniqueTypes.map((type) => (
+                      <MenuItem key={type} value={type}>
+                        {type}
+                      </MenuItem>
+                    ))}
+                  </StyledSelect>
+                </FormControl>
+              )}
+            </Box>
+
+            {/* Правая часть */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <CartButton
                 variant="contained"
-                color="secondary"
-                startIcon={<ShoppingCartOutlined />}
-                style={{'color':'white'}}
+                startIcon={<ShoppingCartOutlined sx={{ color: "#333333" }} />}
+                onClick={() => router.push("/cart")}
               >
-                <div id='CartTitle1'>Корзина</div>
-                <div className="inMods"> </div>
-                <div id='cart__counter'>{clickCount}</div>
+                Корзина
+                {clickCount > 0 && (
+                  <Badge badgeContent={clickCount} color="error" sx={{ ml: 1 }} />
+                )}
+              </CartButton>
+
+              <Button
+                color="inherit"
+                onClick={handleLogout}
+                sx={{ display: { xs: "none", md: "flex" }, color: "#333333" }}
+              >
+                Выход
               </Button>
 
-            ) : (
-              <Button
-                onClick={buttonClick}
-                variant="contained"
-                color="secondary"
-                startIcon={<ShoppingCartOutlined />}
-                style={{'color':'white'}}
+              {/* Кнопка мобильного меню */}
+              <IconButton
+                color="inherit"
+                edge="end"
+                onClick={handleDrawerToggle}
+                sx={{ display: { md: "none" }, color: "#333333" }}
               >
-                <div className="d-flex gap-2 justify-content-center" id='CartTitle'>
-                  Корзина
-                </div>
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
-    </div>
+                <MenuIcon />
+              </IconButton>
+            </Box>
+          </Toolbar>
+        </Container>
+      </StyledAppBar>
+
+      {/* Мобильное меню */}
+      <Drawer
+        anchor="right"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        sx={{ display: { md: "none" } }}
+      >
+        {drawer}
+      </Drawer>
     </>
   );
 }

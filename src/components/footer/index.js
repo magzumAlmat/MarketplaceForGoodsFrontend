@@ -1,4 +1,4 @@
-import { Button, Typography } from "@mui/material";
+import { Box, Typography ,Container} from "@mui/material";
 import Image from "next/image";
 import logo from "/public/image/cable/cable_logo.png";
 import Link from "next/link";
@@ -6,33 +6,31 @@ import { Phone } from "@mui/icons-material";
 
 export default function Footer() {
   return (
-    <footer className="footer">
-      <div className="footer_logo">
-        <div className="header__left align-items-center d-flex gap-1">
-          <Button className="btn">
-            <div className="header__logo">
-              <Image width="38" src={logo} alt="logo pizza" />
-            </div>
-          </Button>
-          <Button className="btn">
-            <div className="footer_logo_text">
-              <div className="header__title-text">SCVolokno.kz</div>
-              <div className="footer__text">Cамые лучшие кабеля</div>
-            </div>
-          </Button>
-        </div>
-        {/* <div className="footer__links">
-          <Link href="#">Доставка и оплата</Link>
-          <Link href="#">О компании</Link>
-        </div> */}
-        <div className="footer__info">
-          <a href="tel:+77779618253" className="footer__phone">
-            <Phone color="primary" />
-            тел: +7 (777) 961 82 53
-          </a>
-          <p>email: scvoloknokz@gmail.com</p>
-        </div>
-      </div>
-    </footer>
+    <Box sx={{ backgroundColor: "#F5F5F5", py: 4 }}>
+      <Container maxWidth="lg">
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Image src={logo} alt="logo" width={38} height={38} />
+            <Box>
+              <Typography variant="h6" sx={{ color: "#333333", fontWeight: "bold" }}>
+                SCVolokno.kz
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#666666" }}>
+                Самые лучшие кабеля
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+            <Typography variant="body2" sx={{ color: "#333333" }}>
+              <Phone sx={{ mr: 1 }} />
+              +7 (777) 961 82 53
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#333333" }}>
+              email: scvoloknokz@gmail.com
+            </Typography>
+          </Box>
+        </Box>
+      </Container>
+    </Box>
   );
 }

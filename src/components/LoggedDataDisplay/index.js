@@ -27,7 +27,7 @@ export default function LoggedDataDisplay() {
         zIndex: 1000,
       }}
     >
-      <h3>Logged Data</h3>
+      {/* <h3>Logged Data</h3> */}
       {/* <pre>{JSON.stringify({ allProducts, allOrders, userCart, order, editedOrder, editedProduct }, null, 2)}</pre> */}
     </div>
   );
