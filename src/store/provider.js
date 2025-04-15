@@ -1,16 +1,12 @@
 'use client'
-import React, { createContext, useContext, useState } from 'react';
+import store from '../store'
+import { children } from 'react'
+import { Provider } from 'react-redux'
 
-const AuthContext = createContext();
-
-export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(null);
-
-  return (
-    <AuthContext.Provider value={{ token, setToken }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => useContext(AuthContext);
+export default function ReduxProvider  ({children}) {
+    return (
+    <Provider store={store}>
+       {children}
+     </Provider>
+  )
+}

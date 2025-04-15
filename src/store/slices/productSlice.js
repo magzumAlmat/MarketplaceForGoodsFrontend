@@ -1,156 +1,343 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import { createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
 
-const API_URL = 'http://localhost:8000/api/store';
+let initialState = {
+  userCart: [],
+  allProducts: [],
+  allOrders: [],
+  isAuth: false,
+  order: {},
+  editedOrder: {},
+  editedProduct: null,
+  selectedMainType: "Все товары",
+  selectedType: "",
+  clickCount: 0,
+  host: 'http://localhost:8000/api/store/'
+};
 
-export const getAllProductsAction = createAsyncThunk(
-  'products/getAllProducts',
-  async () => {
-    const response = await axios.get(`${API_URL}/products`);
-    return response.data;
-  }
-);
+export const userPostsSlice = createSlice({
+  name: "usercart",
+  initialState,
 
-export const getProductByIdAction = createAsyncThunk(
-  'products/getProductById',
-  async (productId) => {
-    const response = await axios.get(`${API_URL}/products/${productId}`);
-    return response.data;
-  }
-);
-
-export const addToCartAction = createAsyncThunk(
-  'cart/addToCart',
-  async ({ productId, quantity }, { getState }) => {
-    const { token } = getState().auth;
-    const response = await axios.post(
-      `${API_URL}/cart`,
-      { productId, quantity },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return response.data;
-  }
-);
-
-export const getCartAction = createAsyncThunk(
-  'cart/getCart',
-  async (_, { getState }) => {
-    const { token } = getState().auth;
-    const response = await axios.get(`${API_URL}/cart`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data;
-  }
-);
-
-export const createOrderAction = createAsyncThunk(
-  'orders/createOrder',
-  async (orderData, { getState }) => {
-    const { token } = getState().auth;
-    const response = await axios.post(`${API_URL}/orders`, orderData, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data;
-  }
-);
-
-export const getAllOrdersAction = createAsyncThunk(
-  'orders/getAllOrders',
-  async (_, { getState }) => {
-    const { token } = getState().auth;
-    const response = await axios.get(`${API_URL}/orders`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data;
-  }
-);
-
-const productSlice = createSlice({
-  name: 'products',
-  initialState: {
-    allProducts: [],
-    product: null,
-    cart: [],
-    orders: [],
-    loading: false,
-    error: null,
-  },
-  reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(getAllProductsAction.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getAllProductsAction.fulfilled, (state, action) => {
-        state.allProducts = action.payload;
-        state.loading = false;
-      })
-      .addCase(getAllProductsAction.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(getProductByIdAction.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getProductByIdAction.fulfilled, (state, action) => {
-        state.product = action.payload;
-        state.loading = false;
-      })
-      .addCase(getProductByIdAction.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(addToCartAction.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(addToCartAction.fulfilled, (state, action) => {
-        state.cart = action.payload;
-        state.loading = false;
-      })
-      .addCase(addToCartAction.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(getCartAction.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getCartAction.fulfilled, (state, action) => {
-        state.cart = action.payload;
-        state.loading = false;
-      })
-      .addCase(getCartAction.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(createOrderAction.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(createOrderAction.fulfilled, (state, action) => {
-        state.orders.push(action.payload);
-        state.loading = false;
-      })
-      .addCase(createOrderAction.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(getAllOrdersAction.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getAllOrdersAction.fulfilled, (state, action) => {
-        state.orders = action.payload;
-        state.loading = false;
-      })
-      .addCase(getAllOrdersAction.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      });
+  reducers: {
+    addClickCountReducer: (state, action) => {
+      state.clickCount = state.clickCount + 1;
+    },
+    deleteClickCountReducer: (state, action) => {
+      state.clickCount = state.clickCount - 1;
+    },
+    addDataToUserCartReducer: (state, action) => {
+      const product = action.payload;
+      const existingItem = state.userCart.find((item) => item.id === product.id);
+      if (existingItem) {
+        existingItem.count = (existingItem.count || 0) + 1;
+        existingItem.totalPrice = parseFloat(existingItem.price) * existingItem.count;
+      } else {
+        state.userCart.push({
+          ...product,
+          count: 1,
+          totalPrice: parseFloat(product.price),
+        });
+      }
+      console.log('Added to cart:', state.userCart);
+    },
+    incrementReducer: (state, action) => {
+      const id = action.payload;
+      const item = state.userCart.find((item) => item.id === id);
+      if (item) {
+        item.count = (item.count || 0) + 1;
+        item.totalPrice = parseFloat(item.price) * item.count;
+        console.log('Incremented:', item);
+      }
+    },
+    decrementReducer: (state, action) => {
+      const id = action.payload;
+      const item = state.userCart.find((item) => item.id === id);
+      if (item && (item.count || 0) > 0) {
+        item.count -= 1;
+        item.totalPrice = parseFloat(item.price) * item.count;
+        // Опционально: удаляем продукт, если count === 0
+        if (item.count === 0) {
+          state.userCart = state.userCart.filter((i) => i.id !== id);
+        }
+        console.log('Decremented:', item);
+      }
+    },
+    getAllOrdersReducer: (state, action) => {
+      console.log('getAllOrdersReducer called with payload:', action.payload);
+      const existingOrders = state.allOrders.map((order) => order.id);
+      const newOrders = action.payload.filter(
+        (newOrder) => !existingOrders.includes(newOrder.id)
+      );
+      state.allOrders.push(...newOrders);
+    },
+    getAllProductsReducer: (state, action) => {
+      console.log('getAllProductsReducer called with payload:', action.payload);
+      const existingProducts = state.allProducts.map((product) => product.id);
+      const newProducts = action.payload.filter(
+        (newProduct) => !existingProducts.includes(newProduct.id)
+      );
+      state.allProducts.push(...newProducts);
+    },
+    filterAllProductsReducer: (state, action) => {
+      state.allProducts = action.payload;
+    },
+    getOrderReducer: (state, action) => {
+      console.log('getOrderReducer called with payload:', action.payload);
+      state.order = action.payload;
+    },
+    getProductByIdReducer: (state, action) => {
+      console.log('getProductByIdReducer called with payload:', action.payload);
+      state.editedProduct = action.payload[0];
+    },
+    isAuthReducer: (state, action) => {
+      state.isAuth = action.payload;
+    },
+    createProductReducer: (state, action) => {
+      state.allProducts = [...state.allProducts, action.payload];
+    },
+    editOrderReducer: (state, action) => {
+      console.log('editOrderReducer called with payload:', action.payload);
+      state.editedOrder = action.payload;
+    },
+    editProductReducer: (state, action) => {
+      console.log('editProductReducer called with payload:', action.payload);
+      const index = state.allProducts.findIndex((product) => product.id === state.editedProduct.id);
+      if (index !== -1) {
+        state.allProducts[index] = state.editedProduct;
+      } else {
+        console.log('Продукт не найден в массиве allProducts');
+      }
+      state.selectedMainType = 'Все товары';
+    },
+    deleteProductReducer: (state, action) => {
+      console.log('deleteProductReducer called with payload:', action.payload);
+      state.allProducts = state.allProducts.filter(
+        (item) => item.id !== action.payload
+      );
+      state.selectedMainType = 'Все товары';
+    },
+    deleteOrderReducer: (state, action) => {
+      console.log('deleteOrderReducer called with payload:', action.payload);
+      state.allOrders = state.allOrders.filter(
+        (item) => item.id !== action.payload
+      );
+    },
+    setSelectedMainTypeReducer: (state, action) => {
+      state.selectedMainType = action.payload;
+    },
+    setSelectedTypeReducer: (state, action) => {
+      state.selectedType = action.payload;
+    },
+    clearCartAction: (state) => {
+      state.userCart = [];
+    },
   },
 });
 
-export default productSlice.reducer;
+export const {
+  addDataToUserCartReducer,
+  incrementReducer,
+  decrementReducer,
+  getAllOrdersReducer,
+  clearCartAction,
+  getAllProductsReducer,
+  isAuthReducer,
+  getOrderReducer,
+  editOrderReducer,
+  editProductReducer,
+  deleteProductReducer,
+  filterAllProductsReducer,
+  setSelectedMainTypeReducer,
+  setSelectedTypeReducer,
+  addClickCountReducer,
+  deleteClickCountReducer,
+  getProductByIdReducer,
+  createProductReducer,
+  deleteOrderReducer,
+} = userPostsSlice.actions;
+
+// Обновленные экшены
+export const addToCartProductAction = (item) => async (dispatch) => {
+  console.log('addToCartProductAction called with item:', item);
+  dispatch(addDataToUserCartReducer(item));
+};
+
+export const incrementAction = (id) => async (dispatch) => {
+  console.log('incrementAction called with id:', id);
+  dispatch(incrementReducer(id));
+};
+
+export const decrementAction = (id) => async (dispatch) => {
+  console.log('decrementAction called with id:', id);
+  dispatch(decrementReducer(id));
+};
+
+// Остальные экшены остаются без изменений
+export const isAuthAction = (isAuth) => async (dispatch) => {
+  dispatch(isAuthReducer(isAuth));
+};
+
+export const createOrderAction = (data, userCartIds) => async (dispatch) => {
+  console.log('createOrderAction called with data:', data, 'and userCartIds:', userCartIds);
+  const host = initialState.host;
+
+  // Преобразуем двумерный массив в одномерный
+  const productIds = userCartIds.map(([id]) => id); // Например, [[2, 10], [3, 18]] → [2, 3]
+
+  const orderData = {
+    username: data.username || '',
+    phone: data.phone || '',
+    address: data.address || '',
+    status: data.status || 'pending',
+    product_ids: productIds,
+    totalPrice: parseFloat(data.totalPrice) || 0,
+  };
+
+  if (!orderData.username || !orderData.phone || !orderData.address || !orderData.totalPrice) {
+    console.error('Missing required fields:', orderData);
+    dispatch({
+      type: 'CREATE_ORDER_FAIL',
+      payload: 'All fields except product_ids are required',
+    });
+    return;
+  }
+
+  try {
+    const response = await axios.post(`${host}createorder`, orderData);
+    dispatch({
+      type: 'CREATE_ORDER_SUCCESS',
+      payload: response.data,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error in createOrderAction:', error.message);
+    dispatch({
+      type: 'CREATE_ORDER_FAIL',
+      payload: error.message,
+    });
+    throw error;
+  }
+};
+
+// Оставшиеся экшены (editOrderAction, createProductAction и т.д.) не трогаем
+export const editOrderAction = (data, orderId) => async (dispatch) => {
+  console.log('editOrderAction called with data:', data, 'and orderId:', orderId);
+  const host = initialState.host;
+  await dispatch(editOrderReducer(data));
+  try {
+    const response = await axios.put(`${host}orders/${orderId}`, {
+      username: data.username,
+      phone: data.phone,
+      address: data.address,
+      status: data.status,
+      totalPrice: data.totalPrice,
+    });
+    console.log("response from edit order action ", response.data);
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createProductAction = (data) => async (dispatch) => {
+  console.log('createProductAction called with data:', data);
+  const host = initialState.host;
+  try {
+    const response = await axios.post(`${host}products`, data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    dispatch(createProductReducer(response.data));
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const editProductAction = (mainType, type, name, price, description, productId, selectedFiles) => async (dispatch) => {
+  console.log('editProductAction called with:', { mainType, type, name, price, description, productId, selectedFiles });
+  const host = initialState.host;
+  const formData = new FormData();
+  formData.append('mainType', mainType);
+  formData.append('type', type);
+  formData.append('name', name);
+  formData.append('price', price);
+  formData.append('description', description);
+  if (selectedFiles) {
+    selectedFiles.forEach((file) => formData.append('image', file));
+  }
+  try {
+    const response = await axios.put(`${host}products/${productId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    dispatch(editProductReducer());
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteProductAction = (productId) => async (dispatch) => {
+  console.log('deleteProductAction called with productId:', productId);
+  const host = initialState.host;
+  try {
+    await axios.delete(`${host}products/${productId}`);
+    dispatch(deleteProductReducer(productId));
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteOrderAction = (orderId) => async (dispatch) => {
+  console.log('deleteOrderAction called with orderId:', orderId);
+  const host = initialState.host;
+  try {
+    await axios.delete(`${host}orders/${orderId}`);
+    dispatch(deleteOrderReducer(orderId));
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getAllOrdersAction = () => async (dispatch) => {
+  console.log('getAllOrdersAction called');
+  const host = initialState.host;
+  try {
+    const response = await axios.get(`${host}allorders`);
+    dispatch(getAllOrdersReducer(response.data));
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getAllProductsAction = () => async (dispatch) => {
+  console.log('getAllProductsAction called');
+  const host = initialState.host;
+  try {
+    const response = await axios.get(`${host}allproducts`);
+    dispatch(getAllProductsReducer(response.data));
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getProductByIdAction = (id) => async (dispatch) => {
+  console.log('getProductByIdAction called with id:', id);
+  const host = initialState.host;
+  try {
+    const response = await axios.get(`${host}products/${id}`);
+    dispatch(getProductByIdReducer(response.data));
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getOrderAction = (orderId) => async (dispatch) => {
+  console.log('getOrderAction called with orderId:', orderId);
+  const host = initialState.host;
+  try {
+    const response = await axios.get(`${host}orders/${orderId}`);
+    dispatch(getOrderReducer(response.data));
+  } catch (error) {
+    throw error;
+  }
+};
+
+export default userPostsSlice.reducer;

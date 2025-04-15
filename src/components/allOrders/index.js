@@ -1,60 +1,98 @@
-"use client"; // Directive for Client Component
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { getAllOrdersAction } from "@/store/slices/productSlice";
+import OrderDetails from "../orderDetails/index";
+import {
+  Container,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Button,
+} from "@mui/material";
 
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useDispatch, useSelector } from 'react-redux';
-import { useAuth } from '../../store/provider';
+const ViewOrders = () => {
+  const allOrders = useSelector((state) => state.usercart.allOrders || []);
+  const dispatch = useDispatch();
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
 
-const AllOrders = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const { token } = useAuth();
+  // Пример строки даты из вашей базы данных
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await axios.get('http://localhost:8000/api/store/orders', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setOrders(response.data);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
+    dispatch(getAllOrdersAction());
+  }, [dispatch]);
+  // Function to handle selecting an order
+  const handleSelectOrder = (orderId) => {
+    setSelectedOrderId(orderId);
+  };
 
-    fetchOrders();
-  }, [token]);
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  const handleGoBack = () => {
+    setSelectedOrderId(null);
+  };
 
   return (
-    <div>
-      <h1>All Orders</h1>
-      <ul>
-        {orders.map((order) => (
-          <li key={order.id}>
-            <h2>Order ID: {order.id}</h2>
-            <p>Total: ${order.total}</p>
-            <p>Status: {order.status}</p>
-            <p>Shipping Address: {order.shippingAddress}</p>
-            <p>Payment Method: {order.paymentMethod}</p>
-            <h3>Items:</h3>
-            <ul>
-              {order.items.map((item) => (
-                <li key={item.productId}>
-                  Product ID: {item.productId}, Quantity: {item.quantity}
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Container>
+      <div className="row justify-content-center">
+        <div className="col-md-10">
+          <Typography variant="h4" className="mb-5 text-center">
+            Просмотр заказов
+          </Typography>
+
+          {/* Conditionally render OrderDetails component */}
+          {selectedOrderId ? (
+            <OrderDetails orderId={selectedOrderId} onGoBack={handleGoBack} />
+          ) : (
+            <>
+              {allOrders.length < 1 ? (
+                <Typography variant="h4" align="center" className="fs-2">
+                  Заказов нет(
+                </Typography>
+              ) : (
+                <TableContainer>
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>ID заказа</TableCell>
+                        <TableCell>Имя</TableCell>
+                        <TableCell>Телефон</TableCell>
+                        <TableCell>Адрес</TableCell>
+                        <TableCell>Статус</TableCell>
+                        <TableCell>Дата создания</TableCell>
+                        <TableCell>Действия</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {allOrders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell>{order.id}</TableCell>
+                          <TableCell>{order.username}</TableCell>
+                          <TableCell>{order.phone}</TableCell>
+                          <TableCell>{order.address}</TableCell>
+                          <TableCell>{order.status}</TableCell>
+                          <TableCell>{order.createdAt}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="contained"
+                              onClick={() => handleSelectOrder(order.id)}
+                            >
+                              Выбрать
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </Container>
   );
 };
 
-export default AllOrders;
+export default ViewOrders;

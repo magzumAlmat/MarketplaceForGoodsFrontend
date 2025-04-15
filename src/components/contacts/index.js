@@ -1,76 +1,87 @@
-"use client"; // Директива для клиентского компонента
+import {useState} from "react";
+import {useDispatch, useSelector} from "react-redux";
+import {createOrderAction} from "@/store/slices/productSlice";
+import {Button} from "@mui/material";
 
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useDispatch } from 'react-redux';
-import { useAuth } from '../../store/provider';
 
-const Contacts = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const dispatch = useDispatch();
-  const { token } = useAuth();
+function ContactForm(total) {
+    const [isDataSent, setIsDataSent] = useState(false);
+    const userCart = useSelector(state => state.usercart.userCart)
+    console.log(userCart)
+    const dispatch = useDispatch();
+    const userCartIds = []
+    const [username, setUsername] = useState('');
+    const [phone, setPhone] = useState('');
+    const [address, setAddress] = useState('');
+    const formData = new FormData();
+    userCart.map(item => {
+        const temp = []
+        temp.push(item.id, item.count)
+        userCartIds.push(temp)
+    })
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post('http://localhost:8000/api/store/contacts', {
-        name,
-        email,
-        message,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSuccess('Message sent successfully');
-      setError(null);
-      setName('');
-      setEmail('');
-      setMessage('');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send message');
-      setSuccess(null);
+    const handleChange = (e) => {
+        const {name, value} = e.target;
+        switch (name) {
+            case 'username':
+                setUsername(value);
+                break;
+            case 'phone':
+                setPhone(value);
+                break;
+            case 'address':
+                setAddress(value);
+                break;
+            default:
+                break;
+        }
+    };
+
+
+    const Submit = (e) => {
+        e.preventDefault()
+        formData.append('username', username);
+        formData.append('phone', phone);
+        formData.append('address', address);
+        formData.append('status', "создан");
+        formData.append('totalPrice', total.total);
+        dispatch(createOrderAction(Object.fromEntries(formData), userCartIds))
+        setIsDataSent(true)
     }
-  };
 
-  return (
-    <div>
-      <h1>Contact Us</h1>
-      <form onSubmit={handleSubmit}>
+    return (
         <div>
-          <label>Name:</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Message:</label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Send</button>
-      </form>
-      {error && <p>{error}</p>}
-      {success && <p>{success}</p>}
-    </div>
-  );
-};
+            {isDataSent ? (
+                <div style={{'background': 'greenyellow'}} className='p-2 border rounded m-5'>
+                    <h4>Данные успешно отправлены</h4>
+                </div>
+            ) : (
+                <div>
+                    <h5>Оставьте свои контактные данные</h5>
 
-export default Contacts;
+                    <form className="form" onSubmit={e => Submit(e)}>
+                        <div className="p-3">
+                            <input onChange={handleChange} value={username} className="form-control" name="username"
+                                   placeholder="Имя" type="text"/>
+                        </div>
+                        <div className="p-3">
+                            <input onChange={handleChange} value={phone} className="form-control" name="phone"
+                                   placeholder="Телефон" type="text"/>
+                        </div>
+                        <div className="p-3">
+                            <input onChange={handleChange} value={address} className="form-control" name="address"
+                                   placeholder="Адрес доставки" type="text"/>
+                        </div>
+                        <div className="p-3">
+                            <Button type="submit">
+                                Отправить
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default ContactForm;
