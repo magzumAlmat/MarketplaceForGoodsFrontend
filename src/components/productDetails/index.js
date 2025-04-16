@@ -1,409 +1,266 @@
-import React, {useEffect, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import {ThemeProvider, createTheme} from '@mui/material/styles';
-import { useRef } from 'react';
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import {
-    deleteProductAction,
-    editOrderAction,
-    editOrderReducer, editProductAction, editProductReducer,
-    getAllOrdersAction,
-    getAllProductsAction,
-    getOrderAction,
-    getProductByIdAction
-} from '@/store/slices/productSlice';
+  addClickCountReducer,
+  addToCartProductAction,
+} from "@/store/slices/productSlice";
 import {
-    Container,
-    Typography,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TextareaAutosize,
-    Button, TextField
-} from '@mui/material';
-import {useDropzone} from "react-dropzone";
-import { Carousel } from 'rsuite';
-import 'rsuite/dist/rsuite-no-reset.min.css';
+  Container,
+  Box,
+  Typography,
+  Button,
+  CircularProgress,
+  Chip,
+  Divider,
+} from "@mui/material";
+import { styled } from "@mui/material/styles";
+import { Carousel } from "rsuite";
+import "rsuite/dist/rsuite-no-reset.min.css";
+import Image from "next/image";
+import Head from "next/head";
+import { ShoppingCartOutlined } from "@mui/icons-material";
+import { toast } from "react-toastify";
+import axios from "axios";
 
+// Стилизованные компоненты
+const StyledButton = styled(Button)(({ theme }) => ({
+  borderRadius: "25px",
+  padding: "10px 20px",
+  backgroundColor: "#ADD8E6",
+  color: "#333333",
+  textTransform: "none",
+  "&:hover": {
+    backgroundColor: "#87CEEB",
+  },
+  "&:disabled": {
+    backgroundColor: "#D3D3D3",
+    color: "#666666",
+  },
+}));
 
-const theme = createTheme();
+const StyledCarousel = styled(Carousel)({
+  borderRadius: "10px",
+  overflow: "hidden",
+  "& .rs-carousel-item": {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "400px",
+  },
+});
 
-const ProductDetails = ({productId, onGoBack}) => {
-    const dispatch = useDispatch();
-    const crossOptical = useSelector(state => state.usercart.allProducts);
-    const refreshedProducts = useSelector((state) => state.usercart.allProducts);
-    const editedProductFromSlice = useSelector(state => state.usercart.editedProduct);
-    const product = crossOptical.find(item => item.id == productId);
-    const [isEdit, setIsEdit] = useState(false);
-    const inputRef = useRef(null);
-    const host = useSelector(state => state.usercart.host)
-    console.log('product from product details====', editedProductFromSlice)
-    const [selectedFiles, setSelectedFiles] = useState([])
-    const [editedProduct, setEditedProduct] = useState({
-        mainType: product.mainType,
-        type: product.type,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        description: product.description,
-    });
+// Базовый URL для API (можно вынести в .env)
+const BASE_URL = "http://localhost:8000";
 
-    const handleFileChange1 = (acceptedFiles) => {
-        setSelectedFiles(acceptedFiles);
-        console.log(selectedFiles)
-    };
+export default function ProductDetailPage({ params = {} }) {
+  const [product, setProduct] = useState(null);
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const userCart = useSelector((state) => state.usercart.userCart);
+  const dispatch = useDispatch();
 
-    const { getRootProps, getInputProps } = useDropzone({
-        accept: 'image/*', // specify the file types you want to accept
-        multiple: true,
-        maxFiles: 10,
-        onDrop: handleFileChange1,
-    });
-
-    useEffect(() => {
-        dispatch(getAllOrdersAction());
-        dispatch(getAllProductsAction());
-
-    }, [dispatch, crossOptical]);
-
-    console.log('Edited product', editedProduct)
-
-
-    // Function to trigger the callback when the "Go Back" button is clicked
-    const handleGoBack = () => {
-        onGoBack();
-    };
-    const handleDeleteProduct = (id) => {
-        dispatch(deleteProductAction(id));
-        dispatch(getAllProductsAction());
-        setTimeout(2000)
-        onGoBack();
-        
-        console.log('All product', crossOptical);
+  useEffect(() => {
+    if (!params.id) {
+      setError("ID продукта не указан");
+      setIsLoading(false);
+      return;
     }
-
-    useEffect( () => {
-
-        dispatch(getAllProductsAction());
-        dispatch(getProductByIdAction(productId))
-
-    }, [dispatch, refreshedProducts]);
-
-    const editProduct = () => {
-        
-        // dispatch(editProductAction(
-        //     editedProduct.mainType,
-        //     editedProduct.type,
-        //     editedProduct.name,
-        //     editedProduct.price,
-        //     editedProduct.description,
-        //     productId,
-            
-        //     selectedFiles));
-
-        // setIsEdit(false);
-
-        if (selectedFiles.length > 0) {
-            dispatch(
-              editProductAction(
-                editedProduct.mainType,
-                editedProduct.type,
-                editedProduct.name,
-                editedProduct.price,
-                editedProduct.description,
-                productId,
-                selectedFiles
-              )
-            );
-            
-          } else {
-            dispatch(
-              editProductAction(
-                editedProduct.mainType,
-                editedProduct.type,
-                editedProduct.name,
-                editedProduct.price,
-                editedProduct.description,
-                product.image,
-                productId
-              )
-            );
-            
-          }
-      
-          setIsEdit(false);
-          
-        };
-    
-
-
-        console.log('all products from edit', crossOptical);
-
-    const setButton = () => {
-        setIsEdit(true);
+  
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`${BASE_URL}/api/store/product/${params.id}`);
+        const productData = response.data;
+  
+        console.log("Информация о продукте:", productData); // Вывод в консоль
+  
+        setProduct(productData);
+        const imagesData = productData.ProductImages || [];
+        setImages(imagesData.sort((a, b) => (b.isPrimary ? 1 : -1)));
+      } catch (err) {
+        console.warn("Ошибка запроса:", err.response?.status, err.message);
+        if (err.response?.status === 404) {
+          setError("Продукт не найден");
+        } else {
+          setError(err.message || "Ошибка загрузки данных");
+        }
+        setImages([]);
+      } finally {
+        setIsLoading(false);
+      }
     };
+  
+    fetchData();
+  }, [params.id]);
 
-    const handleInputChange = (field, value) => {
-        setEditedProduct(prevState => ({...prevState, [field]: value}));
-    };
+  const isInCart = (item) => {
+    return userCart.some((cartItem) => cartItem.id === item.id);
+  };
 
-    // const renderOrderDetails = () => {
-    //     return (
-    //         <>
-    //             {editedOrderFromSlice ? (
-    //                 <Container>
-    //                     <Typography variant="h4">Детали заказа</Typography>
-    //                     <Typography className='mb-3 mt-3'>Номер заказа: {editedOrderFromSlice.id}</Typography>
-    //                     <Typography className='mb-3'>Имя: {editedOrderFromSlice.username}</Typography>
-    //                     <Typography className='mb-3'>Телефон: {editedOrderFromSlice.phone}</Typography>
-    //                     <Typography className='mb-3'>Адрес доставки: {editedOrderFromSlice.address}</Typography>
-    //                     <Typography className='mb-3'>Статус заказа: {editedOrderFromSlice.status}</Typography>
-    //                     <Typography className='mb-3'>Дата создания: {formattedDate}</Typography>
-    //                     <Typography className='mb-3'>Общая сумма заказа: {editedOrderFromSlice.totalPrice}</Typography>
-    //                 </Container>
-    //             ) : (
-    //                 <Container>
-    //                     <Typography variant="h4">Детали заказа</Typography>
-    //                     <Typography className='mb-3 mt-3'>Номер заказа: {order.id}</Typography>
-    //                     <Typography className='mb-3'>Имя: {order.username}</Typography>
-    //                     <Typography className='mb-3'>Телефон: {order.phone}</Typography>
-    //                     <Typography className='mb-3'>Адрес доставки: {order.address}</Typography>
-    //                     <Typography className='mb-3'>Статус заказа: {order.status}</Typography>
-    //                     <Typography className='mb-3'>Дата создания: {formattedDate}</Typography>
-    //                     <Typography className='mb-3'>Общая сумма заказа: {order.totalPrice}</Typography>
-    //                 </Container>
-    //             )}
-    //         </>
-    //     )
-    // };
-    //
-    // const renderEditableOrderDetails = () => (
-    //     <Container>
-    //         <Typography variant="h4">Детали заказа</Typography>
-    //         <Typography className='mb-3 mt-3'>Номер заказа: {editedOrder.id}</Typography>
-    //         <Typography className='mb-3 '>
-    //             <TextField
-    //                 defaultValue={editedOrder.username}
-    //                 label="Имя"
-    //                 onChange={(e) => handleInputChange('username', e.target.value)}
-    //                 className='mb-3'
-    //             />
-    //         </Typography>
-    //         <Typography className='mb-3'>
-    //             <TextField
-    //                 label="Телефон"
-    //                 defaultValue={editedOrder.phone}
-    //                 onChange={(e) => handleInputChange('phone', e.target.value)}
-    //                 className='mb-3'
-    //             />
-    //         </Typography>
-    //         <Typography className='mb-3'>
-    //             <TextField
-    //                 label="Адрес доставки"
-    //                 defaultValue={editedOrder.address}
-    //                 onChange={(e) => handleInputChange('address', e.target.value)}
-    //                 className='mb-3'
-    //             />
-    //         </Typography>
-    //         <Typography className='mb-3'>
-    //             <TextField
-    //                 label="Статус заказа"
-    //                 defaultValue={editedOrder.status}
-    //                 onChange={(e) => handleInputChange('status', e.target.value)}
-    //                 className='mb-3'
-    //             />
-    //         </Typography>
-    //         <Typography className='mb-3'>
-    //             <TextField
-    //                 label="Общая сумма"
-    //                 defaultValue={editedOrder.totalPrice}
-    //                 onChange={(e) => handleInputChange('totalPrice', e.target.value)}
-    //                 className='mb-3'
-    //             />
-    //         </Typography>
-    //     </Container>
-    // );
-    if (editedProductFromSlice) {
-        console.log(editedProductFromSlice)
-        console.log(editedProduct)
-    }
-    
+  const handleAddToCart = (item) => {
+    dispatch(addClickCountReducer());
+    dispatch(addToCartProductAction(item));
+    toast.success("Добавлено в корзину!");
+  };
+
+  if (isLoading) {
     return (
-        <ThemeProvider theme={theme}>
-            <Container className="mt-5">
-                {isEdit ? 
-                    <Container>
-                        <Typography variant="h4">Детали продукта</Typography>
-                        
-                        <Typography className='mb-3 '>
-                            <TextField
-                                defaultValue={editedProduct.mainType}
-                                label="Основной тип"
-                                onChange={(e) => handleInputChange('mainType', e.target.value)}
-                                className='mb-3'
-                            />
-                        </Typography>
-                        <Typography className='mb-3'>
-                            <TextField
-                                label="Тип"
-                                defaultValue={editedProduct.type}
-                                onChange={(e) => handleInputChange('type', e.target.value)}
-                                className='mb-3'
-                            />
-                        </Typography>
-                        <Typography className='mb-3'>
-                            <TextField
-                                label="Название"
-                                defaultValue={editedProduct.name}
-                                onChange={(e) => handleInputChange('name', e.target.value)}
-                                className='mb-3'
-                            />
-                        </Typography>
-                        <Typography className="mb-3">
-                        <TextareaAutosize
-                            maxRows={4}
-                            aria-label="maximum height"
-                            placeholder="Описание"
-                            value={editedProduct.description}
-                            onChange={(e) =>
-                            handleInputChange("description", e.target.value)
-                            }
-                            style={{
-                            width: "100%",
-                            height: "100px",
-                            padding: "10px",
-                            fontFamily: "Montserrat",
-                            marginTop: "10px",
-                            }}
-                        />
-            </Typography>
-                        <Typography className='mb-3'>
-                            <TextField
-                                label="Цена"
-                                defaultValue={editedProduct.price}
-                                onChange={(e) => handleInputChange('price', e.target.value)}
-                                className='mb-3'
-                            />
-                        </Typography>
-                        
-                        <div {...getRootProps()} style={{ cursor: 'pointer', padding: '20px', border: '2px dashed #ddd' }}>
-                            <input {...getInputProps()} ref={inputRef} style={{ display: 'none' }} />
-                            <p>Перетащите сюда файлы</p>
-                        </div>
-                        <Button>
-        <input
-            {...getInputProps()}
-            ref={inputRef}
-            style={{ cursor: "pointer" }}
-          />
-        </Button>
-                        
-                        
-                        {selectedFiles.length > 0 && (
-                            <>
-                                <p>Выбранные файлы:</p>
-                                <ul>
-                                    {selectedFiles.map((file) => (
-                                        <li key={file.name}>{file.name}</li>
-                                    ))}
-                                </ul>
-                            </>
-                        )}
-
-                        {selectedFiles.length > 0 &&
-                            selectedFiles.map((file) => (
-                                <div key={file.name}>
-                                    <img src={URL.createObjectURL(file)} alt='' width={400} height={300} />
-                                </div>
-                            ))}
-                    </Container>
-                 : (
-                    <>
-                        {editedProductFromSlice ? (
-
-                            <Container>
-                                <Typography variant="h4">Детали продукта</Typography>
-                                
-                                <Typography className='mb-3'>Основной тип: {editedProductFromSlice.mainType}</Typography>
-                                <Typography className='mb-3'>Тип: {editedProductFromSlice.type}</Typography>
-                                <Typography className='mb-3'>Название: {editedProductFromSlice.name}</Typography>
-                                <Typography className="mb-3"> Описание: {editedProductFromSlice.description}</Typography>
-                                <Typography className='mb-3'>Цена: {editedProductFromSlice.price}</Typography>
-                                <Button className="pizza__img-button">
-                                    <Carousel className="custom-slider">
-                                      {editedProductFromSlice.image.split(",").map((imageUrl, imageIndex) => (
-                                        <img
-                                          key={imageIndex}
-                                          src={`${host + imageUrl.trim()}`}
-                                          alt={`Product image ${imageIndex}`}
-                                          style={{ objectFit: "contain", width: "100%" }}
-                                        />
-                                      ))}
-                                    </Carousel>
-                                    </Button>
-                            </Container>
-
-
-                        ) : (
-                            <>
-                                <Container>
-                                    <Typography variant="h4">Детали продукта</Typography>
-                                    
-                                    <Typography className='mb-3'>Основной тип: {editedProduct.mainType}</Typography>
-                                    <Typography className='mb-3'>Тип: {editedProduct.type}</Typography>
-                                    <Typography className='mb-3'>Название: {editedProduct.name}</Typography>
-                                    <Typography className="mb-3">Описание: {editedProduct.description}</Typography>
-                                    <Typography className='mb-3'>Цена: {editedProduct.price}</Typography>
-                                    {console.log(editedProduct.image)}
-                                    {/* {editedProduct.image.split(",").map((imageUrl, imageIndex) => ( */}
-                                    {/* // const trimmedUrl = `${host + imageUrl.trim()}`;
-                                    // console.log(trimmedUrl); */}
-                                    
-                                    <Button className="pizza__img-button">
-                                    <Carousel className="custom-slider">
-                                      {editedProduct.image.split(",").map((imageUrl, imageIndex) => (
-                                        <img
-                                          key={imageIndex}
-                                          src={`${host + imageUrl.trim()}`}
-                                          alt={`Product image ${imageIndex}`}
-                                          style={{ objectFit: "contain", width: "100%" }}
-                                        />
-                                      ))}
-                                    </Carousel>
-                                    </Button>
-                                 
-                                       
-                                
-                                  
-                                    {/* ))} */}
-                                </Container>
-                            </>
-                        )}
-                    </>
-
-                )}
-                <Container className='d-flex gap-5'>
-                    <Button variant="contained" color="warning" className="mb-5 mt-3" onClick={handleGoBack}>
-                        Назад к продуктам
-                    </Button>
-                    {isEdit ? (
-                        <Button variant="contained" color='success' className="mb-5 mt-3" onClick={editProduct}>
-                            Сохранить
-                        </Button>
-                    ) : (
-                        <Button variant="contained" color="info" className="mb-5 mt-3" onClick={setButton}>
-                            Изменить
-                        </Button>
-                    )}
-                    <Button variant="contained" color="warning" className="mb-5 mt-3" onClick={() => {handleDeleteProduct(productId)}}>
-                        Удалить
-                    </Button>
-                </Container>
-            </Container>
-        </ThemeProvider>
+      <Container sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+        <CircularProgress />
+      </Container>
     );
-};
+  }
 
-export default ProductDetails;
+  if (error || !product) {
+    return (
+      <Container sx={{ py: 4, textAlign: "center" }}>
+        <Typography variant="h6" color="error">
+          {error || "Продукт не найден"}
+        </Typography>
+      </Container>
+    );
+  }
+
+  const price = parseFloat(product.price);
+
+
+  
+  return (
+    <>
+      <Head>
+        <title>{product.name} - SCVolokno.kz</title>
+        <meta
+          name="description"
+          content={
+            product.description?.slice(0, 160) || "Подробное описание продукта"
+          }
+        />
+      </Head>
+      <Container maxWidth="lg" sx={{ py: 4, fontFamily: "Montserrat, sans-serif" }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 4 }}>
+          {/* Секция с изображениями */}
+          <Box sx={{ flex: 1, maxWidth: { xs: "100%", md: "50%" } }}>
+            {images.length > 0 ? (
+              <StyledCarousel autoplay>
+                {images.map((img, index) => {
+                  const imageSrc = img.imagePath
+                    ? `${BASE_URL}${img.imagePath}`
+                    : "/placeholder.jpg";
+                  return (
+                    <Box key={img.id || index} sx={{ display: "flex", justifyContent: "center" }}>
+                     <Image
+                          src={imageSrc}
+                          alt={`Product image ${index}`}
+                          width={600}
+                          height={400}
+                          style={{ objectFit: "contain" }}
+                          priority={index === 0}
+                          onError={() => setImages((prev) => prev.filter((_, i) => i !== index))} // Удалить изображение при ошибке
+                        />
+                    </Box>
+                  );
+                })}
+              </StyledCarousel>
+            ) : (
+              <Box
+                sx={{
+                  height: "400px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#F5F5F5",
+                  borderRadius: "10px",
+                }}
+              >
+                <Typography variant="body1" color="#666666">
+                  Нет фото
+                </Typography>
+              </Box>
+            )}
+          </Box>
+
+          {/* Секция с информацией */}
+          <Box sx={{ flex: 1 }}>
+            {/* Категории */}
+            {product.Categories?.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                {product.Categories.map((category) => (
+                  <Chip
+                    key={category.id || category.name}
+                    label={category.name}
+                    size="small"
+                    sx={{ mr: 1, backgroundColor: "#FFFFE0", color: "#333333" }}
+                  />
+                ))}
+              </Box>
+            )}
+
+            {/* Название */}
+            <Typography variant="h4" sx={{ fontWeight: "700", color: "#333333", mb: 1 }}>
+              {product.name}
+            </Typography>
+
+            {/* Объем, если есть */}
+            {product.volume && (
+              <Typography variant="body2" color="#666666" sx={{ mb: 1 }}>
+                Объем: {product.volume}
+              </Typography>
+            )}
+
+            {/* Наличие */}
+            <Typography variant="body2" color="#666666" sx={{ mb: 2 }}>
+              Наличие: {product.stock > 0 ? `${product.stock} шт.` : "Нет в наличии"}
+            </Typography>
+
+            {/* Цена и кнопка */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: "700", color: "#333333" }}>
+                {price.toLocaleString()} ₸
+              </Typography>
+              <StyledButton
+                startIcon={<ShoppingCartOutlined />}
+                onClick={() => handleAddToCart(product)}
+                disabled={isInCart(product) || product.stock === 0}
+              >
+                {isInCart(product) ? "В корзине" : product.stock === 0 ? "Нет в наличии" : "В корзину"}
+              </StyledButton>
+            </Box>
+
+            {/* Описание */}
+            <Divider sx={{ mb: 2 }} />
+            <Typography variant="h6" sx={{ color: "#333333", mb: 1 }}>
+              Описание
+            </Typography>
+            <Typography
+              variant="body1"
+              color="#666666"
+              dangerouslySetInnerHTML={{
+                __html: product.description?.replace(/\n/g, "<br />") || "Описание отсутствует",
+              }}
+            />
+
+            {/* Характеристики, если есть */}
+            {product.features && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="h6" sx={{ color: "#333333", mb: 1 }}>
+                  Характеристики
+                </Typography>
+                <Typography
+                  variant="body1"
+                  color="#666666"
+                  dangerouslySetInnerHTML={{
+                    __html: product.features.replace(/\n/g, "<br />"),
+                  }}
+                />
+              </>
+            )}
+          </Box>
+        </Box>
+      </Container>
+    </>
+  );
+}

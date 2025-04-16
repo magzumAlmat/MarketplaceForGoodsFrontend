@@ -99,7 +99,7 @@ export default function Header() {
   const drawer = (
     <Box sx={{ width: 250, p: 2, backgroundColor: "#F5F5F5" }}>
       <List>
-        <ListItem button onClick={() => router.push("/")}>
+        <ListItem button key="home" onClick={() => router.push("/")}>
           <ListItemText primary="Главная" />
         </ListItem>
         {uniqueMainTypes.map((type) => (
@@ -107,7 +107,7 @@ export default function Header() {
             <ListItemText primary={type} />
           </ListItem>
         ))}
-        <ListItem button onClick={handleLogout}>
+        <ListItem button key="logout" onClick={handleLogout}>
           <ListItemText primary="Выход" />
         </ListItem>
       </List>
@@ -165,7 +165,7 @@ export default function Header() {
                   onChange={(e) => handleNavItemClick(e.target.value)}
                   displayEmpty
                 >
-                  <MenuItem value="Все товары">
+                  <MenuItem key="all-products" value="Все товары">
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <MenuIcon sx={{ color: "#333333" }} />
                       Все
@@ -186,7 +186,7 @@ export default function Header() {
                     onChange={handleTypeChange}
                     displayEmpty
                   >
-                    <MenuItem value="">Все подкатегории</MenuItem>
+                    <MenuItem key="all-subcategories" value="">Все подкатегории</MenuItem>
                     {uniqueTypes.map((type) => (
                       <MenuItem key={type} value={type}>
                         {type}

@@ -1,161 +1,122 @@
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useSelector } from "react-redux";
-import axios from "axios";
-import END_POINT from "@/components/config";
+import { useRouter } from "next/navigation";
 import {
-  Box,
   Grid,
   Card,
   CardContent,
-  CardMedia,
   Typography,
   Button,
-  TextField,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Box,
 } from "@mui/material";
-import { toast } from "react-toastify";
+import { styled } from "@mui/material/styles";
+import Image from "next/image";
+
+// Стилизованные компоненты
+const ProductCard = styled(Card)(({ theme }) => ({
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  borderRadius: "10px",
+  boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+  transition: "all 0.3s ease",
+  "&:hover": {
+    transform: "translateY(-5px)",
+    boxShadow: "0 5px 15px rgba(0,0,0,0.15)",
+  },
+}));
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  borderRadius: "25px",
+  padding: "8px 20px",
+  backgroundColor: "#1976d2",
+  color: "#FFFFFF",
+  textTransform: "none",
+  "&:hover": {
+    backgroundColor: "#1565c0",
+  },
+}));
 
 export default function AllProducts() {
-  const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState("asc");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const { authToken } = useSelector((state) => state.auth);
-  const itemsPerPage = 9;
+  const { allProducts, host } = useSelector((state) => state.usercart);
+  const router = useRouter();
 
+  // Логирование данных
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get(`${END_POINT}/api/store/allproducts`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        });
-        setProducts(response.data);
-      } catch (error) {
-        toast.error(error.response?.data?.message || "Ошибка загрузки продуктов");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    if (authToken) {
-      fetchProducts();
-    }
-  }, [authToken]);
-
-  const handleDelete = async (id) => {
-    if (!confirm("Вы уверены, что хотите удалить этот продукт?")) return;
-    try {
-      await axios.delete(`${END_POINT}/api/store/product/${id}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
+    console.log("Все продукты:", allProducts);
+    allProducts.forEach((product, index) => {
+      console.log(`Продукт ${index + 1}:`, {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        description: product.description,
+        type: product.type,
+        images: product.ProductImages,
       });
-      setProducts(products.filter((p) => p.id !== id));
-      toast.success("Продукт удален");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Ошибка удаления продукта");
+    });
+  }, [allProducts]);
+
+  const getPrimaryImage = (images) => {
+    if (!images || images.length === 0) {
+      console.log("Изображения отсутствуют, используется заглушка");
+      return "/placeholder-image.jpg";
     }
+    const primaryImage = images.find((img) => img.isPrimary);
+    // Используем базовый URL, убирая лишние части вроде /api/store/
+    const baseUrl = host.replace(/\/api\/store\/?$/, '');
+    const imagePath = primaryImage ? primaryImage.imagePath : images[0].imagePath;
+    const imageUrl = `${baseUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    console.log("Выбрано изображение:", imageUrl);
+    return imageUrl;
   };
 
-  const filteredProducts = products
-    .filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) =>
-      sortOrder === "asc" ? a.price - b.price : b.price - a.price
-    );
-
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-
-  if (isLoading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 5 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Box>
-      <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-        <TextField
-          label="Поиск по названию"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ flexGrow: 1 }}
-        />
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Сортировка</InputLabel>
-          <Select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            label="Сортировка"
-          >
-            <MenuItem value="asc">По цене (возр.)</MenuItem>
-            <MenuItem value="desc">По цене (убыв.)</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-      {currentItems.length === 0 ? (
-        <Typography>Продукты не найдены</Typography>
-      ) : (
-        <Grid container spacing={3}>
-          {currentItems.map((item) => (
-            <Grid item xs={12} sm={6} md={4} key={item.id}>
-              <Card>
-                {item.image && (
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={`${END_POINT}/${item.image.split(",")[0].trim()}`}
-                    alt={item.name}
-                  />
-                )}
-                <CardContent>
-                  <Typography variant="h6">{item.name}</Typography>
-                  <Typography color="text.secondary">
-                    {item.description?.slice(0, 100) || "-"}
-                  </Typography>
-                  <Typography variant="body1" sx={{ mt: 1 }}>
-                    Цена: {item.price} ₸
-                  </Typography>
-                  <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
-                    <Button
-                      variant="contained"
-                      color="error"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Удалить
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 3, gap: 1 }}>
-        <Button
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(currentPage - 1)}
-        >
-          Назад
-        </Button>
-        <Typography>Страница {currentPage} из {totalPages}</Typography>
-        <Button
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage(currentPage + 1)}
-        >
-          Вперед
-        </Button>
-      </Box>
+    <Box sx={{ mt: 3 }}>
+      <Grid container spacing={3}>
+        {allProducts.map((product) => (
+          <Grid item xs={12} sm={6} md={4} key={product.id}>
+            <ProductCard>
+              <Box sx={{ position: "relative", height: 200, p: 2 }}>
+                <Image
+                  src={getPrimaryImage(product.ProductImages)}
+                  alt={product.name}
+                  fill
+                  style={{ objectFit: "contain" }}
+                  sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 33vw"
+                  priority={false}
+                  loading="lazy"
+                  placeholder="blur"
+                  blurDataURL="/placeholder-image.jpg"
+                />
+              </Box>
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Typography variant="h6" color="#333333" fontWeight="600">
+                  {product.name}
+                </Typography>
+                <Typography variant="body2" color="#666666">
+                  {product.type || "Тип не указан"}
+                </Typography>
+                <Typography variant="body2" color="#666666" mt={1}>
+                  {product.description?.slice(0, 100) || "Описание отсутствует"}...
+                </Typography>
+                <Typography variant="subtitle1" fontWeight="700" color="#333333" mt={1}>
+                  {parseFloat(product.price).toLocaleString()} ₸
+                </Typography>
+              </CardContent>
+              <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end" }}>
+                <StyledButton
+                  onClick={() => router.push(`/product/${product.id}`)}
+                >
+                  Подробнее
+                </StyledButton>
+              </Box>
+            </ProductCard>
+          </Grid>
+        ))}
+      </Grid>
     </Box>
   );
 }

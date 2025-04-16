@@ -1,87 +1,159 @@
-import {useState} from "react";
-import {useDispatch, useSelector} from "react-redux";
-import {createOrderAction} from "@/store/slices/productSlice";
-import {Button} from "@mui/material";
 
+"use client";
 
-function ContactForm(total) {
-    const [isDataSent, setIsDataSent] = useState(false);
-    const userCart = useSelector(state => state.usercart.userCart)
-    console.log(userCart)
-    const dispatch = useDispatch();
-    const userCartIds = []
-    const [username, setUsername] = useState('');
-    const [phone, setPhone] = useState('');
-    const [address, setAddress] = useState('');
-    const formData = new FormData();
-    userCart.map(item => {
-        const temp = []
-        temp.push(item.id, item.count)
-        userCartIds.push(temp)
-    })
+import { useState, useEffect } from "react";
+import { Button, TextField, Box, CircularProgress } from "@mui/material";
+import { styled } from "@mui/material/styles";
 
-    const handleChange = (e) => {
-        const {name, value} = e.target;
-        switch (name) {
-            case 'username':
-                setUsername(value);
-                break;
-            case 'phone':
-                setPhone(value);
-                break;
-            case 'address':
-                setAddress(value);
-                break;
-            default:
-                break;
-        }
+const StyledButton = styled(Button)(({ theme }) => ({
+  borderRadius: "25px",
+  padding: "10px 20px",
+  backgroundColor: "#1976d2",
+  color: "#FFFFFF",
+  textTransform: "none",
+  "&:hover": {
+    backgroundColor: "#1565c0",
+  },
+}));
+
+export default function ContactForm({ total, className }) {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  // Загрузка скрипта виджета
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://widget.tiptoppay.kz/v1/api.js";
+    script.async = true;
+    script.onload = () => {
+      console.log("Скрипт TipTop Pay загружен");
+      setScriptLoaded(true);
     };
+    script.onerror = () => {
+      console.error("Ошибка загрузки скрипта TipTop Pay");
+      setError("Не удалось загрузить платежный модуль");
+    };
+    document.body.appendChild(script);
 
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
-    const Submit = (e) => {
-        e.preventDefault()
-        formData.append('username', username);
-        formData.append('phone', phone);
-        formData.append('address', address);
-        formData.append('status', "создан");
-        formData.append('totalPrice', total.total);
-        dispatch(createOrderAction(Object.fromEntries(formData), userCartIds))
-        setIsDataSent(true)
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    if (!scriptLoaded || !window.TTP) {
+      setError("Платежный модуль не загружен. Попробуйте снова.");
+      setLoading(false);
+      return;
     }
 
-    return (
-        <div>
-            {isDataSent ? (
-                <div style={{'background': 'greenyellow'}} className='p-2 border rounded m-5'>
-                    <h4>Данные успешно отправлены</h4>
-                </div>
-            ) : (
-                <div>
-                    <h5>Оставьте свои контактные данные</h5>
+    try {
+      // Генерация уникального ID заказа
+      const orderId = `ORDER_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-                    <form className="form" onSubmit={e => Submit(e)}>
-                        <div className="p-3">
-                            <input onChange={handleChange} value={username} className="form-control" name="username"
-                                   placeholder="Имя" type="text"/>
-                        </div>
-                        <div className="p-3">
-                            <input onChange={handleChange} value={phone} className="form-control" name="phone"
-                                   placeholder="Телефон" type="text"/>
-                        </div>
-                        <div className="p-3">
-                            <input onChange={handleChange} value={address} className="form-control" name="address"
-                                   placeholder="Адрес доставки" type="text"/>
-                        </div>
-                        <div className="p-3">
-                            <Button type="submit">
-                                Отправить
-                            </Button>
-                        </div>
-                    </form>
-                </div>
-            )}
-        </div>
-    );
+      // Параметры для виджета
+      const paymentParams = {
+        publicId: "ВАШ_PUBLIC_ID", // Замените на ваш publicId из личного кабинета
+        amount: total.toFixed(2), // Сумма с двумя знаками
+        currency: "KZT",
+        accountId: formData.email || orderId, // ID клиента
+        orderId: orderId,
+        description: `Заказ ${orderId} для ${formData.name}`,
+        email: formData.email,
+        phone: formData.phone,
+        name: formData.name,
+        language: "ru",
+        skin: "modern",
+        autoClose: 3, // Закрыть через 3 секунды после успеха
+      };
+
+      // Логирование
+      console.log("Данные формы:", formData);
+      console.log("Параметры оплаты:", paymentParams);
+
+      // Инициализация виджета
+      const ttp = window.TTP({
+        ...paymentParams,
+        onSuccess: (result) => {
+          console.log("Оплата успешна:", result);
+          alert("Всё готово! Ваш заказ успешно оплачен.");
+          setLoading(false);
+          // Опционально: перенаправление или очистка формы
+          // window.location.href = "/order/confirmation";
+        },
+        onError: (error) => {
+          console.error("Ошибка оплаты:", error);
+          setError("Оплата не удалась. Попробуйте снова.");
+          setLoading(false);
+        },
+        onClose: (isClosed) => {
+          console.log("Виджет закрыт:", isClosed);
+          setLoading(false);
+        },
+      });
+
+      // Открытие виджета
+      ttp.open();
+    } catch (err) {
+      console.error("Ошибка инициализации оплаты:", err);
+      setError("Не удалось инициировать оплату. Попробуйте снова.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
+      className={className}
+      sx={{ display: "flex", flexDirection: "column", gap: 2, maxWidth: 400 }}
+    >
+      <TextField
+        label="Имя"
+        name="name"
+        value={formData.name}
+        onChange={handleChange}
+        required
+        fullWidth
+      />
+      <TextField
+        label="Email"
+        name="email"
+        type="email"
+        value={formData.email}
+        onChange={handleChange}
+        required
+        fullWidth
+      />
+      <TextField
+        label="Телефон"
+        name="phone"
+        value={formData.phone}
+        onChange={handleChange}
+        required
+        fullWidth
+      />
+      <Box sx={{ mt: 2 }}>
+        <p>Итоговая сумма: {total.toLocaleString()} ₸</p>
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        <StyledButton type="submit" disabled={loading || !scriptLoaded}>
+          {loading ? <CircularProgress size={24} /> : "Оплатить"}
+        </StyledButton>
+      </Box>
+    </Box>
+  );
 }
-
-export default ContactForm;

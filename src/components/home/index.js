@@ -424,6 +424,15 @@ export default function Products() {
                     >
                       {item.name}
                     </Typography>
+
+
+                    {/* <StyledButton
+                  onClick={() => router.push(`/product/${product.id}`)}
+                >
+                  Подробнее
+                </StyledButton> */}
+
+
                     <Typography variant="body2" color="#666666">
                       {item.mainType}
                     </Typography>

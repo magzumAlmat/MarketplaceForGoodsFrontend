@@ -14,8 +14,9 @@ const initialState = {
   authToken: null,
   error: null,
   uploadProgress: 0,
+  
 };
-
+const host = "http://localhost:8000"
 export const authSlice = createSlice({
   name: 'auth',
   initialState,
