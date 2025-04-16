@@ -80,6 +80,7 @@ export const userPostsSlice = createSlice({
       );
       state.allProducts.push(...newProducts);
     },
+    
     filterAllProductsReducer: (state, action) => {
       state.allProducts = action.payload;
     },

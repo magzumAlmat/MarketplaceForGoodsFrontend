@@ -29,9 +29,12 @@ export default function AllOrders() {
         const response = await axios.get(`${END_POINT}/api/store/allorders`, {
           headers: { Authorization: `Bearer ${authToken}` },
         });
+        // Предполагаем, что response.data — массив заказов с вложенными товарами
         setOrders(response.data);
       } catch (error) {
-        toast.error(error.response?.data?.message || "Ошибка загрузки заказов");
+        toast.error(
+          error.response?.data?.message || "Ошибка загрузки заказов"
+        );
       } finally {
         setIsLoading(false);
       }
@@ -50,7 +53,9 @@ export default function AllOrders() {
       setOrders(orders.filter((o) => o.id !== id));
       toast.success("Заказ удален");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Ошибка удаления заказа");
+      toast.error(
+        error.response?.data?.message || "Ошибка удаления заказа"
+      );
     }
   };
 
@@ -76,9 +81,10 @@ export default function AllOrders() {
               <TableRow>
                 <TableCell>ID</TableCell>
                 <TableCell>Пользователь</TableCell>
-                <TableCell>Продукт</TableCell>
-                <TableCell>Количество</TableCell>
+                <TableCell>Товары</TableCell>
+                <TableCell>Общая сумма</TableCell>
                 <TableCell>Дата</TableCell>
+                <TableCell>Статус</TableCell>
                 <TableCell>Действия</TableCell>
               </TableRow>
             </TableHead>
@@ -86,12 +92,25 @@ export default function AllOrders() {
               {orders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell>{order.id}</TableCell>
-                  <TableCell>{order.user?.email || "-"}</TableCell>
-                  <TableCell>{order.product?.name || "-"}</TableCell>
-                  <TableCell>{order.quantity}</TableCell>
+                  <TableCell>{order.username || "-"}</TableCell>
+                  <TableCell>
+                    {order.orderProducts && order.orderProducts.length > 0 ? (
+                      order.orderProducts.map((item, index) => (
+                        <Typography key={index}>
+                          {item.product?.name || `Товар ID ${item.productId}`} -{" "}
+                          {item.count} шт.
+                          {index < order.orderProducts.length - 1 && ", "}
+                        </Typography>
+                      ))
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell>{order.totalPrice.toLocaleString()} ₸</TableCell>
                   <TableCell>
                     {new Date(order.createdAt).toLocaleDateString()}
                   </TableCell>
+                  <TableCell>{order.status}</TableCell>
                   <TableCell>
                     <Button
                       variant="contained"
