@@ -49,6 +49,7 @@ export default function RootLayout({ children }) {
             `,
           }}
         />
+        <script src="https://widget.tiptoppay.kz/bundles/widget.js"></script>
       </Head>
       <body>
         <ThemeProviderWrapper>
