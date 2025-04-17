@@ -116,6 +116,11 @@ export default function Cart() {
     setUpdatedData(data);
   }, [data]);
 
+  // Рассчёт общей суммы
+  const totalCartPrice = updatedData.reduce((sum, item) => {
+    return sum + (parseFloat(item.totalPrice) || parseFloat(item.price) * (item.count || 0));
+  }, 0);
+
   const clickUpCount = (id) => {
     dispatch(incrementAction(id));
   };
@@ -184,7 +189,7 @@ export default function Cart() {
                       </ActionButton>
                     </TableCell>
                     <TableCell>
-                      {(item.totalPrice || 0).toLocaleString("ru-KZ", {
+                      {(item.totalPrice || parseFloat(item.price) * (item.count || 0)).toLocaleString("ru-KZ", {
                         style: "currency",
                         currency: "KZT",
                       })}
@@ -194,7 +199,15 @@ export default function Cart() {
               </TableBody>
             </StyledTable>
           </Paper>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3, alignItems: "center" }}>
+            <Typography
+              variant="h6"
+              fontWeight="700"
+              color="#333333"
+              sx={{ mr: 4 }}
+            >
+              Итого: {totalCartPrice.toLocaleString("ru-KZ", { style: "currency", currency: "KZT" })}
+            </Typography>
             <OrderButton onClick={nextClick} variant="contained">
               Оформить заказ
             </OrderButton>

@@ -115,7 +115,7 @@ export default function Header() {
   const handleNavItemClick = (mainType) => {
     dispatch(setSelectedMainTypeReducer(mainType));
     dispatch(setSelectedTypeReducer(""));
-    router.push("/"); // Перенаправление на главную страницу
+    router.push("/katalog-tovarov"); // Перенаправление на главную страницу
   };
 
   const handleTypeChange = (event) => {
@@ -130,7 +130,7 @@ export default function Header() {
   const handleCategorySelect = (category) => {
     dispatch(setSelectedMainTypeReducer(category));
     dispatch(setSelectedTypeReducer(""));
-    router.push("/"); // Перенаправление на главную страницу
+    router.push("/katalog-tovarov"); // Перенаправление на главную страницу
   };
 
   console.log("Все данные =", allProducts, "Уникальные категории", uniqueCategories);
@@ -199,7 +199,9 @@ export default function Header() {
                   <MenuItem key="all-products" value="Все товары">
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <MenuIcon sx={{ color: "#333333" }} />
+                     
                       Каталог товаров
+    
                     </Box>
                   </MenuItem>
                   {uniqueCategories.map((category) => (
