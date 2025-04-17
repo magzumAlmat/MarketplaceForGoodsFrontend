@@ -7,6 +7,7 @@
 :root {
   --primary-color: #ff5722;
   --white: #fff;
+  
 }
 
 * {
@@ -15,17 +16,20 @@
   margin: 0;
   outline: none;
   padding: 0;
+
 }
 
 body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+background: "linear-gradient(180deg, #F9FAFB 0%, #EDE9FE 100%)!important",
 }
 
 main {
   flex: 1;
   margin-bottom: 100px;
+  
 }
 
 a, span, p {

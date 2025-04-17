@@ -27,7 +27,9 @@ export const metadata = {
   },
 };
 
+
 export default function RootLayout({ children }) {
+  
   return (
     <html lang="en">
       <Head>
@@ -54,7 +56,7 @@ export default function RootLayout({ children }) {
       <body>
         <ThemeProviderWrapper>
           <ReduxProvider>
-            <Header />
+         <Header />
             <main>{children}</main>
             <Footer />
             <LoggedDataDisplay />

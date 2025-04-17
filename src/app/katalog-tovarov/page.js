@@ -6,7 +6,7 @@ import KatalogComponent from "@/components/katalogComponent";
 export default function contactPage() {
   return (
     <>
- <KatalogComponent/>
+     <KatalogComponent/>
     </>
   );
 }

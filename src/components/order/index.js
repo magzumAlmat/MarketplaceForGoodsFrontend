@@ -29,7 +29,7 @@ import { motion } from "framer-motion";
 // Стилизованные компоненты
 const OrderContainer = styled(Container)(({ theme }) => ({
   padding: theme.spacing(6, 2),
-  background: "linear-gradient(180deg, #F9FAFB 0%, #EDE9FE 100%)",
+  
   borderRadius: "24px",
   marginTop: theme.spacing(4),
   fontFamily: "'Mulish', sans-serif",
@@ -130,7 +130,7 @@ export default function Order() {
   useEffect(() => {
     if (searchParams.get("status") === "success") {
       alert("Всё готово! Ваш заказ успешно оплачен.");
-      router.push("/order/confirmation");
+      router.push("/confirmation");
     } else if (searchParams.get("status") === "fail") {
       alert("Оплата не удалась. Пожалуйста, попробуйте снова.");
     }
@@ -236,7 +236,7 @@ export default function Order() {
                 <TableHead>
                   <TableRow>
                     <TableCell>Название</TableCell>
-                    <TableCell>Тип</TableCell>
+
                     <TableCell>Цена</TableCell>
                     <TableCell align="center">Количество</TableCell>
                     <TableCell>Сумма</TableCell>
@@ -252,7 +252,7 @@ export default function Order() {
                       transition={{ duration: 0.5 }}
                     >
                       <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.type || "Не указан"}</TableCell>
+                      
                       <TableCell>{parseFloat(item.price).toLocaleString()} ₸</TableCell>
                       <TableCell align="center">{item.count}</TableCell>
                       <TableCell>{(item.price * item.count).toLocaleString()} ₸</TableCell>
