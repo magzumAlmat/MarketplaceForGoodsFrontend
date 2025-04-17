@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import {
@@ -11,9 +11,12 @@ import {
   Typography,
   Button,
   Box,
+  Modal,
+  Fade,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import Image from "next/image";
+import axios from "axios";
 
 // Стилизованные компоненты
 const ProductCard = styled(Card)(({ theme }) => ({
@@ -40,9 +43,42 @@ const StyledButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+const DeleteButton = styled(Button)(({ theme }) => ({
+  borderRadius: "25px",
+  padding: "8px 20px",
+  backgroundColor: "#d32f2f",
+  color: "#FFFFFF",
+  textTransform: "none",
+  "&:hover": {
+    backgroundColor: "#b71c1c",
+  },
+}));
+
+const ModalBox = styled(Box)(({ theme }) => ({
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 400,
+  backgroundColor: "#FFFFFF",
+  borderRadius: "10px",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+  padding: theme.spacing(4),
+  textAlign: "center",
+}));
+
+const ModalButton = styled(Button)(({ theme }) => ({
+  borderRadius: "25px",
+  padding: "8px 20px",
+  margin: theme.spacing(1),
+  textTransform: "none",
+}));
+
 export default function AllProducts() {
   const { allProducts, host } = useSelector((state) => state.usercart);
   const router = useRouter();
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState(null);
 
   // Логирование данных
   useEffect(() => {
@@ -65,12 +101,37 @@ export default function AllProducts() {
       return "/placeholder-image.jpg";
     }
     const primaryImage = images.find((img) => img.isPrimary);
-    // Используем базовый URL, убирая лишние части вроде /api/store/
-    const baseUrl = host.replace(/\/api\/store\/?$/, '');
+    const baseUrl = host.replace(/\/api\/store\/?$/, "");
     const imagePath = primaryImage ? primaryImage.imagePath : images[0].imagePath;
-    const imageUrl = `${baseUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    const imageUrl = `${baseUrl}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`;
     console.log("Выбрано изображение:", imageUrl);
     return imageUrl;
+  };
+
+  const handleOpenModal = (productId) => {
+    setSelectedProductId(productId);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedProductId(null);
+  };
+
+  const handleDelete = async () => {
+    console.log('Я внутри handle delete id товара= ',selectedProductId)
+    try {
+      
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/product/${selectedProductId}`);
+      alert("Продукт успешно удалён!");
+      // Перезагрузка страницы для обновления списка продуктов
+      router.refresh();
+    } catch (error) {
+      console.error("Ошибка при удалении продукта:", error);
+      alert("Не удалось удалить продукт. Попробуйте снова.");
+    } finally {
+      handleCloseModal();
+    }
   };
 
   return (
@@ -106,17 +167,49 @@ export default function AllProducts() {
                   {parseFloat(product.price).toLocaleString()} ₸
                 </Typography>
               </CardContent>
-              <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end" }}>
-                <StyledButton
-                  onClick={() => router.push(`/product/${product.id}`)}
-                >
+              <Box sx={{ p: 2, display: "flex", justifyContent: "space-between" }}>
+                <StyledButton onClick={() => router.push(`/product/${product.id}`)}>
                   Подробнее
                 </StyledButton>
+                <DeleteButton onClick={() => handleOpenModal(product.id)}>
+                  Удалить
+                </DeleteButton>
               </Box>
             </ProductCard>
           </Grid>
         ))}
       </Grid>
+
+      {/* Модальное окно для подтверждения удаления */}
+      <Modal
+        open={openModal}
+        onClose={handleCloseModal}
+        closeAfterTransition
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+      >
+        <Fade in={openModal}>
+          <ModalBox>
+            <Typography id="modal-title" variant="h6" fontWeight="600" color="#333333" mb={3}>
+              Вы точно хотите удалить этот продукт?
+            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <ModalButton
+                onClick={handleDelete}
+                sx={{ backgroundColor: "#d32f2f", color: "#FFFFFF", "&:hover": { backgroundColor: "#b71c1c" } }}
+              >
+                Да
+              </ModalButton>
+              <ModalButton
+                onClick={handleCloseModal}
+                sx={{ backgroundColor: "#1976d2", color: "#FFFFFF", "&:hover": { backgroundColor: "#1565c0" } }}
+              >
+                Нет
+              </ModalButton>
+            </Box>
+          </ModalBox>
+        </Fade>
+      </Modal>
     </Box>
   );
 }

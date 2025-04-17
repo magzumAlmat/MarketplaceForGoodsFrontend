@@ -284,7 +284,7 @@ export default function KatalogComponent() {
     slidesToShow: 4,
     slidesToScroll: 1,
     autoplay: true,
-    autoplaySpeed: 2000, // Уменьшено с 4000 до 2000 мс
+    autoplaySpeed: 4000, // Уменьшено с 4000 до 2000 мс
     responsive: [
       {
         breakpoint: 960,
