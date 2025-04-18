@@ -2,19 +2,37 @@ import { createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
 axios.defaults.timeout = 10000; // 10 секунд
+
 let initialState = {
   userCart: [],
   allProducts: [],
   allOrders: [],
   isAuth: false,
   order: {},
-  
   editedOrder: {},
   editedProduct: null,
   selectedMainType: "Все товары",
   selectedType: "",
   clickCount: 0,
-  host: 'http://localhost:8000/api/store/'
+  host: 'http://localhost:8000/api/store/',
+  filters: {
+    searchTerm: "",
+    sortBy: "",
+    selectedCategories: [],
+    minPrice: "",
+    maxPrice: "",
+    minVolume: "",
+    maxVolume: "",
+    minStock: "",
+    maxStock: "",
+    descriptionKeyword: "",
+    featuresKeyword: "",
+    page: 1,
+    limit: 8,
+  },
+  status: "idle", // idle | loading | succeeded | failed
+  error: null,
+  total: 0,
 };
 
 export const userPostsSlice = createSlice({
@@ -58,7 +76,6 @@ export const userPostsSlice = createSlice({
       if (item && (item.count || 0) > 0) {
         item.count -= 1;
         item.totalPrice = parseFloat(item.price) * item.count;
-        // Опционально: удаляем продукт, если count === 0
         if (item.count === 0) {
           state.userCart = state.userCart.filter((i) => i.id !== id);
         }
@@ -75,13 +92,11 @@ export const userPostsSlice = createSlice({
     },
     getAllProductsReducer: (state, action) => {
       console.log('getAllProductsReducer called with payload:', action.payload);
-      const existingProducts = state.allProducts.map((product) => product.id);
-      const newProducts = action.payload.filter(
-        (newProduct) => !existingProducts.includes(newProduct.id)
-      );
-      state.allProducts.push(...newProducts);
+      state.status = "succeeded";
+      state.allProducts = action.payload;
+      state.total = action.payload.length;
+      state.error = null;
     },
-    
     filterAllProductsReducer: (state, action) => {
       state.allProducts = action.payload;
     },
@@ -135,6 +150,20 @@ export const userPostsSlice = createSlice({
     clearCartAction: (state) => {
       state.userCart = [];
     },
+    setFiltersReducer: (state, action) => {
+      state.filters = { ...state.filters, ...action.payload };
+    },
+    resetFiltersReducer: (state) => {
+      state.filters = initialState.filters;
+    },
+    setLoadingStateReducer: (state) => {
+      state.status = "loading";
+      state.error = null;
+    },
+    setErrorStateReducer: (state, action) => {
+      state.status = "failed";
+      state.error = action.payload;
+    },
   },
 });
 
@@ -158,9 +187,27 @@ export const {
   getProductByIdReducer,
   createProductReducer,
   deleteOrderReducer,
+  setFiltersReducer,
+  resetFiltersReducer,
+  setLoadingStateReducer,
+  setErrorStateReducer,
 } = userPostsSlice.actions;
 
-// Обновленные экшены
+// Обновленный getAllProductsAction
+export const getAllProductsAction = () => async (dispatch) => {
+  console.log('getAllProductsAction called');
+  const host = initialState.host;
+  try {
+    dispatch(setLoadingStateReducer());
+    const response = await axios.get(`${host}allproducts`);
+    dispatch(getAllProductsReducer(response.data));
+  } catch (error) {
+    console.error('Ошибка API:', error.response?.data || error.message);
+    dispatch(setErrorStateReducer(error.response?.data || error.message));
+  }
+};
+
+// Существующие экшены
 export const addToCartProductAction = (item) => async (dispatch) => {
   console.log('addToCartProductAction called with item:', item);
   dispatch(addDataToUserCartReducer(item));
@@ -176,7 +223,6 @@ export const decrementAction = (id) => async (dispatch) => {
   dispatch(decrementReducer(id));
 };
 
-// Остальные экшены остаются без изменений
 export const isAuthAction = (isAuth) => async (dispatch) => {
   dispatch(isAuthReducer(isAuth));
 };
@@ -185,8 +231,7 @@ export const createOrderAction = (data, userCartIds) => async (dispatch) => {
   console.log('createOrderAction called with data:', data, 'and userCartIds:', userCartIds);
   const host = initialState.host;
 
-  // Преобразуем двумерный массив в одномерный
-  const productIds = userCartIds.map(([id]) => id); // Например, [[2, 10], [3, 18]] → [2, 3]
+  const productIds = userCartIds.map(([id]) => id);
 
   const orderData = {
     username: data.username || '',
@@ -223,7 +268,6 @@ export const createOrderAction = (data, userCartIds) => async (dispatch) => {
   }
 };
 
-// Оставшиеся экшены (editOrderAction, createProductAction и т.д.) не трогаем
 export const editOrderAction = (data, orderId) => async (dispatch) => {
   console.log('editOrderAction called with data:', data, 'and orderId:', orderId);
   const host = initialState.host;
@@ -309,30 +353,6 @@ export const getAllOrdersAction = () => async (dispatch) => {
     throw error;
   }
 };
-
-export const getAllProductsAction = () => async (dispatch) => {
-  console.log('getAllProductsAction called');
-  const host = initialState.host;
-  try {
-    const response = await axios.get(`${host}allproducts`);
-    dispatch(getAllProductsReducer(response.data));
-  } catch (error) {
-    throw error;
-  }
-};
-
-
-// export const getAllProductsAction = (filters) => async (dispatch) => {
-//   try {
-//     dispatch({ type: "GET_ALL_PRODUCTS_REQUEST" });
-//     const response = await axios.get(`http://localhost:8000/api/store/allproducts`, { params: filters });
-//     dispatch({ type: "GET_ALL_PRODUCTS_SUCCESS", payload: response.data });
-//   } catch (error) {
-//     console.error("Ошибка API:", error.response?.data || error.message);
-//     dispatch({ type: "GET_ALL_PRODUCTS_FAIL", payload: error.message });
-//   }
-//};
-
 
 export const getProductByIdAction = (id) => async (dispatch) => {
   console.log('getProductByIdAction called with id:', id);
