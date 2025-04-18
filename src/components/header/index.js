@@ -74,6 +74,7 @@ const CategoryButton = styled(Button)(({ theme }) => ({
 }));
 
 export default function Header() {
+  console.log('Header rendering');
   const dispatch = useDispatch();
   const { host, userCart } = useSelector((state) => state.usercart);
   const cartItemCount = userCart.length;

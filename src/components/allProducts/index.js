@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import {
   Grid,
@@ -17,8 +16,9 @@ import {
 import { styled } from "@mui/material/styles";
 import Image from "next/image";
 import axios from "axios";
+import { getAllProductsAction } from "@/store/slices/productSlice"; // Импортируем действие
 
-// Стилизованные компоненты
+// Стили остаются без изменений
 const ProductCard = styled(Card)(({ theme }) => ({
   height: "100%",
   display: "flex",
@@ -75,25 +75,30 @@ const ModalButton = styled(Button)(({ theme }) => ({
 }));
 
 export default function AllProducts() {
+  const dispatch = useDispatch();
   const { allProducts, host } = useSelector((state) => state.usercart);
   const router = useRouter();
   const [openModal, setOpenModal] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Загружаем продукты
+  useEffect(() => {
+    dispatch(getAllProductsAction())
+      .then(() => setLoading(false))
+      .catch((err) => {
+        console.error("Ошибка загрузки продуктов:", err);
+        setError("Не удалось загрузить продукты");
+        setLoading(false);
+      });
+  }, [dispatch]);
 
   // Логирование данных
   useEffect(() => {
-    console.log("Все продукты:", allProducts);
-    allProducts.forEach((product, index) => {
-      console.log(`Продукт ${index + 1}:`, {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        description: product.description,
-        type: product.type,
-        images: product.ProductImages,
-      });
-    });
-  }, [allProducts]);
+    console.log("AllProducts: Состояние продуктов:", allProducts);
+    console.log("AllProducts: Хост:", host);
+  }, [allProducts, host]);
 
   const getPrimaryImage = (images) => {
     if (!images || images.length === 0) {
@@ -109,30 +114,44 @@ export default function AllProducts() {
   };
 
   const handleOpenModal = (productId) => {
+    console.log("Открытие модального окна для продукта:", productId);
     setSelectedProductId(productId);
     setOpenModal(true);
   };
 
   const handleCloseModal = () => {
+    console.log("Закрытие модального окна");
     setOpenModal(false);
     setSelectedProductId(null);
   };
 
   const handleDelete = async () => {
-    console.log('Я внутри handle delete id товара= ',selectedProductId)
+    console.log("Удаление продукта, ID:", selectedProductId);
     try {
-      
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/product/${selectedProductId}`);
+      const response = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/product/${selectedProductId}`);
+      console.log("Ответ API на удаление:", response.data);
       alert("Продукт успешно удалён!");
-      // Перезагрузка страницы для обновления списка продуктов
-      router.refresh();
+      // Перезагружаем продукты
+      dispatch(getAllProductsAction());
     } catch (error) {
-      console.error("Ошибка при удалении продукта:", error);
+      console.error("Ошибка при удалении продукта:", error.response?.data || error.message);
       alert("Не удалось удалить продукт. Попробуйте снова.");
     } finally {
       handleCloseModal();
     }
   };
+
+  if (loading) {
+    return <Typography>Загрузка продуктов...</Typography>;
+  }
+
+  if (error) {
+    return <Typography color="error">{error}</Typography>;
+  }
+
+  if (!allProducts || allProducts.length === 0) {
+    return <Typography>Продукты не найдены.</Typography>;
+  }
 
   return (
     <Box sx={{ mt: 3 }}>
@@ -180,7 +199,6 @@ export default function AllProducts() {
         ))}
       </Grid>
 
-      {/* Модальное окно для подтверждения удаления */}
       <Modal
         open={openModal}
         onClose={handleCloseModal}

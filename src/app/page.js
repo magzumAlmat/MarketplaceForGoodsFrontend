@@ -1,12 +1,27 @@
-"use client"
-import HomePage from "@/components/home";
-// import 'bootstrap/dist/css/bootstrap.min.css';
+// "use client";
+
+// import { usePathname } from 'next/navigation';
+// import Header from '@/components/header';
+// import Footer from '@/components/footer';
+
+// export default function RootLayout({ children }) {
+//   const pathname = usePathname();
+//   const isAdminRoute = pathname?.startsWith('/admin');
+
+//   console.log('RootLayout rendering, pathname:', pathname); // Отладка
+
+//   return (
+//     <>
+//       {!isAdminRoute && <Header />}
+//       <main>{children}</main>
+//       {!isAdminRoute && <Footer />}
+//     </>
+//   );
+// }
 
 
-export default function MainPage() {
-    return (
-        <>
-            <HomePage/>
-        </>
-    )
+import Home from '@/components/home';
+
+export default function HomePage() {
+  return <Home />;
 }
