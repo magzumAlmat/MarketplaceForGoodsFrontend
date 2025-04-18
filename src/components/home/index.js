@@ -364,7 +364,7 @@ export default function Products() {
                       component={motion.div}
                       initial={{ y: 50, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: item.id * 0.1 }}
+                      transition={{ delay: item.id * 0.01 }}
                     >
                       <Link href={`/product/${item.id}`} passHref>
                         <Box sx={{ position: "relative" }}>

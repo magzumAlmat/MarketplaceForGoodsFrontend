@@ -779,6 +779,9 @@
 
 
 
+
+
+
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -1127,10 +1130,10 @@ export default function Products() {
             currentItems.map((item) => (
               <Grid item xs={12} sm={6} md={3} key={item.id}>
                 <ProductCard
-                  component={motion.div}
-                  initial={{ y: 50, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: item.id * 0.1 }}
+                  // component={motion.div}
+                  // initial={{ y: 50, opacity: 0 }}
+                  // animate={{ y: 0, opacity: 1 }}
+                  // transition={{ delay: item.id * 0.1 }}
                 >
                   {item.ProductImages?.length > 0 ? (
                     <Box sx={{ height: "200px", width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -1165,8 +1168,9 @@ export default function Products() {
                       </Typography>
                     </Box>
                   )}
-                  <NaturalBadge>Натурально</NaturalBadge>
+                
                   <CardContent sx={{ flexGrow: 1, padding: "16px" }}>
+                  {/* <NaturalBadge>Натурально</NaturalBadge> */}
                     <Typography
                       variant="h6"
                       component={Link}
