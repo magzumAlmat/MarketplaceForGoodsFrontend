@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
+axios.defaults.timeout = 10000; // 10 секунд
 let initialState = {
   userCart: [],
   allProducts: [],
@@ -319,6 +320,19 @@ export const getAllProductsAction = () => async (dispatch) => {
     throw error;
   }
 };
+
+
+// export const getAllProductsAction = (filters) => async (dispatch) => {
+//   try {
+//     dispatch({ type: "GET_ALL_PRODUCTS_REQUEST" });
+//     const response = await axios.get(`http://localhost:8000/api/store/allproducts`, { params: filters });
+//     dispatch({ type: "GET_ALL_PRODUCTS_SUCCESS", payload: response.data });
+//   } catch (error) {
+//     console.error("Ошибка API:", error.response?.data || error.message);
+//     dispatch({ type: "GET_ALL_PRODUCTS_FAIL", payload: error.message });
+//   }
+//};
+
 
 export const getProductByIdAction = (id) => async (dispatch) => {
   console.log('getProductByIdAction called with id:', id);
