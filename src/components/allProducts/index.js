@@ -193,6 +193,7 @@ export default function AllProducts() {
                 <DeleteButton onClick={() => handleOpenModal(product.id)}>
                   Удалить
                 </DeleteButton>
+                
               </Box>
             </ProductCard>
           </Grid>
