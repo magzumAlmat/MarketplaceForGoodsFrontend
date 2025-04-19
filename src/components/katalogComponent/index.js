@@ -1394,6 +1394,15 @@ export default function Products() {
   //   );
   // };
 
+
+  const remToPixels = (rem) => {
+    const baseFontSize = 16;
+    return rem * baseFontSize;
+  };
+  
+  const itemSizeInPixels = remToPixels(37.75); // 37.75rem * 16 = 604px
+  const listHeight = itemSizeInPixels * chunkArray(currentItems, 4).length; // Динамическая высота
+
   return (
     <Container maxWidth="lg" sx={{ py: 6, fontFamily: "Montserrat, sans-serif" }}>
       {/* Баннер */}
@@ -1458,7 +1467,7 @@ export default function Products() {
       {/* Сетка продуктов */}
    
 
-<Box mb={6} position="relative">
+      <Box mb={6} position="relative">
   {loading && (
     <Box
       sx={{
@@ -1478,7 +1487,7 @@ export default function Products() {
         <Grid item xs={12} sm={6} md={3} key={idx}>
           <Skeleton
             variant="rectangular"
-            height="35rem" // 400px / 16 = 25rem, но используем 35rem как в ProductCard
+            height="35rem"
             sx={{ borderRadius: "0.9375rem", width: "18.75rem", margin: "0 auto" }}
           />
         </Grid>
@@ -1489,24 +1498,21 @@ export default function Products() {
       Товары не найдены
     </Typography>
   ) : (
-    <FixedSizeList
-          height={600} // 37.5rem * 16 = 600px
-          width="100%"
-          itemCount={chunkArray(currentItems, 4).length}
-          itemSize={604} // 37.75rem * 16 = 604px
-          itemData={{
-            items: chunkArray(currentItems, 4),
-            imageErrors,
-            setImageErrors,
-            isInCart,
-            dispatch,
-          }}
-        >
-          {Row}
-  </FixedSizeList>
+    <Grid container spacing={3} justifyContent="center">
+      {currentItems.map((item) => (
+        <Grid item xs={12} sm={6} md={3} key={item.id}>
+          <ProductItem
+            item={item}
+            imageErrors={imageErrors}
+            setImageErrors={setImageErrors}
+            isInCart={isInCart}
+            dispatch={dispatch}
+          />
+        </Grid>
+      ))}
+    </Grid>
   )}
 </Box>
-
 
       {/* Пагинация */}
       {totalPages > 1 && (
