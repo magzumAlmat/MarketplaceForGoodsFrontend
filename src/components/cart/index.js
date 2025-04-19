@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -105,15 +104,24 @@ const AnimatedImage = styled(motion(Image))({
   height: "80px !important",
 });
 
+const ErrorMessage = styled(Typography)(({ theme }) => ({
+  color: "#B71C1C",
+  fontSize: "12px",
+  marginTop: theme.spacing(1),
+}));
+
 export default function Cart() {
   const data = useSelector((state) => state.usercart.userCart) || [];
   const [updatedData, setUpdatedData] = useState(data);
+  const [errorMessages, setErrorMessages] = useState({}); // Состояние для сообщений об ошибках
   const dispatch = useDispatch();
   const router = useRouter();
 
   // Синхронизация с Redux
   useEffect(() => {
     setUpdatedData(data);
+    // Очищаем ошибки при изменении корзины
+    setErrorMessages({});
   }, [data]);
 
   // Рассчёт общей суммы
@@ -122,19 +130,61 @@ export default function Cart() {
   }, 0);
 
   const clickUpCount = (id) => {
+    const item = updatedData.find((item) => item.id === id);
+    if (!item) return;
+
+    const currentCount = item.count || 0;
+    const stock = item.stock || 0;
+
+    if (currentCount + 1 > stock) {
+      // Если новое количество превышает stock, показываем сообщение
+      setErrorMessages((prev) => ({
+        ...prev,
+        [id]: `Нельзя заказать больше ${stock} шт. В наличии: ${stock} шт.`,
+      }));
+      return;
+    }
+
+    // Если всё в порядке, убираем сообщение об ошибке (если оно было) и увеличиваем количество
+    setErrorMessages((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[id];
+      return newErrors;
+    });
     dispatch(incrementAction(id));
   };
 
   const clickDownCount = (id) => {
+    // При уменьшении количества убираем сообщение об ошибке (если оно было)
+    setErrorMessages((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[id];
+      return newErrors;
+    });
     dispatch(decrementAction(id));
   };
 
   const nextClick = () => {
+    // Проверяем, нет ли товаров, где count > stock, перед переходом к оформлению
+    const hasErrors = updatedData.some((item) => (item.count || 0) > (item.stock || 0));
+    if (hasErrors) {
+      setErrorMessages((prev) => {
+        const newErrors = { ...prev };
+        updatedData.forEach((item) => {
+          if ((item.count || 0) > (item.stock || 0)) {
+            newErrors[item.id] = `Нельзя заказать больше ${item.stock} шт. В наличии: ${item.stock} шт.`;
+          }
+        });
+        return newErrors;
+      });
+      return;
+    }
     router.push("/order");
   };
 
   const clearCart = () => {
     dispatch(clearCartAction());
+    setErrorMessages({});
   };
 
   return (
@@ -172,7 +222,12 @@ export default function Cart() {
               <TableBody>
                 {updatedData.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>{item.name}</TableCell>
+                    <TableCell>
+                      {item.name}
+                      {errorMessages[item.id] && (
+                        <ErrorMessage>{errorMessages[item.id]}</ErrorMessage>
+                      )}
+                    </TableCell>
                     <TableCell>
                       {parseFloat(item.price || 0).toLocaleString("ru-KZ", {
                         style: "currency",
