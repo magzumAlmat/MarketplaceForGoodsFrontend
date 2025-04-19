@@ -783,8 +783,8 @@
 
 
 "use client";
-
-import React, { useEffect, useState, useMemo } from "react";
+import { FixedSizeList } from 'react-window';
+import React, { useEffect, useState, useMemo, memo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Button,
@@ -823,24 +823,278 @@ import "slick-carousel/slick/slick-theme.css";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/store";
 
+// В начале файла Products.js добавим утилиту для группировки
+const chunkArray = (array, size) => {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size));
+  }
+  return result;
+};
 // Стилизация
 const ProductCard = styled(Card)(({ theme }) => ({
-  width: "300px",
-  maxWidth: "300px",
-  minWidth: "300px",
-  height: "100%",
+  width: "18.75rem", // 300px / 16 = 18.75rem
+  maxWidth: "18.75rem",
+  minWidth: "18.75rem",
+  height: "35rem", // Оставляем как есть
   display: "flex",
   flexDirection: "column",
-  borderRadius: "15px",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  borderRadius: "0.9375rem", // 15px / 16 = 0.9375rem
+  boxShadow: "0 0.25rem 0.75rem rgba(0,0,0,0.1)", // 4px и 12px
   transition: "all 0.3s ease",
   "&:hover": {
-    transform: "translateY(-8px)",
-    boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+    transform: "translateY(-0.5rem)", // 8px / 16 = 0.5rem
+    boxShadow: "0 0.5rem 1.25rem rgba(0,0,0,0.15)", // 8px и 20px
   },
   backgroundColor: "#FFFFFF",
   margin: "0 auto",
 }));
+
+
+
+// const ProductItem = memo(({ item, imageErrors, setImageErrors, isInCart, dispatch }) => {
+//   const images = item.ProductImages || [];
+//   console.log('IMAGES= ', images);
+
+//   // Выбираем основное изображение (isPrimary: true), если его нет — берем первое
+//   const primaryImage = images.find((img) => img.isPrimary) || images[0];
+//   const imageUrl = images.length > 0
+//     ? `${BASE_URL.replace(/\/api\/store$/, "")}${primaryImage.imagePath}`
+//     : "/placeholder-image.jpg";
+//   console.log('IMAGE URL= ', imageUrl); // Для отладки
+
+//   return (
+//     <ProductCard>
+//       {images.length > 0 ? (
+//         <Box sx={{ height: "12.5rem", width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+//           <Image
+//             src={imageErrors[item.id] ? "/placeholder-image.jpg" : imageUrl}
+//             alt={item.name || "Продукт"}
+//             width={17.5} // 280px / 16 = 17.5rem
+//             height={11.25} // 180px / 16 = 11.25rem
+//             style={{ objectFit: "contain", maxWidth: "100%", maxHeight: "100%" }}
+//             onError={() => {
+//               console.log(`Failed to load image for product ${item.id}: ${imageUrl}`);
+//               setImageErrors((prev) => ({ ...prev, [item.id]: true }));
+//             }}
+//             loading="lazy"
+//           />
+//         </Box>
+//       ) : (
+//         <Box
+//           sx={{
+//             height: "12.5rem",
+//             width: "100%",
+//             display: "flex",
+//             alignItems: "center",
+//             justifyContent: "center",
+//             bgcolor: "#F5F5F5",
+//             borderRadius: "0.625rem",
+//           }}
+//         >
+//           <Typography variant="body1" color="text.secondary">
+//             Нет фото
+//           </Typography>
+//         </Box>
+//       )}
+//       <CardContent sx={{ flexGrow: 1, padding: "1rem" }}>
+//         <Typography
+//           variant="h6"
+//           component={Link}
+//           href={`/product/${item.id}`}
+//           sx={{
+//             textDecoration: "none",
+//             color: "#333333",
+//             "&:hover": { color: "#ADD8E6" },
+//             display: "-webkit-box",
+//             WebkitLineClamp: 2,
+//             WebkitBoxOrient: "vertical",
+//             overflow: "hidden",
+//             textOverflow: "ellipsis",
+//           }}
+//         >
+//           {item.name || "Без названия"}
+//         </Typography>
+//         <Typography
+//           variant="body2"
+//           sx={{
+//             display: "-webkit-box",
+//             WebkitLineClamp: 1,
+//             WebkitBoxOrient: "vertical",
+//             overflow: "hidden",
+//             textOverflow: "ellipsis",
+//           }}
+//         >
+//           {item.Categories?.length > 0
+//             ? item.Categories.map((cat) => cat.name).join(", ")
+//             : "Без категории"}
+//         </Typography>
+//         <Typography
+//           variant="body2"
+//           mt={1}
+//           sx={{
+//             display: "-webkit-box",
+//             WebkitLineClamp: 3,
+//             WebkitBoxOrient: "vertical",
+//             overflow: "hidden",
+//             textOverflow: "ellipsis",
+//           }}
+//         >
+//           {item.description || "Без описания"}
+//         </Typography>
+//         <Typography variant="body2" mt={1}>
+//           Объем: {item.volume || "Не указан"}
+//         </Typography>
+//         <Typography variant="body2" mt={1}>
+//           Наличие: {item.stock || 0} шт.
+//         </Typography>
+//       </CardContent>
+//       <CardActions sx={{ p: 2, justifyContent: "space-between" }}>
+//         <Typography variant="subtitle1" fontWeight="700">
+//           {parseFloat(item.price || 0).toLocaleString()} ₸
+//         </Typography>
+//         <StyledButton
+//           onClick={() => dispatch(addToCartProductAction(item))}
+//           disabled={isInCart(item)}
+//         >
+//           {isInCart(item) ? "В корзине" : "Добавить"}
+//         </StyledButton>
+//       </CardActions>
+//     </ProductCard>
+//   );
+// });
+
+// Компонент Row для рендеринга строки с 4 карточками
+
+const ProductItem = memo(({ item, imageErrors, setImageErrors, isInCart, dispatch }) => {
+  const images = item.ProductImages || [];
+  const imageUrl = images.length > 0
+    ? `${BASE_URL.replace(/\/api\/store$/, "")}${images[0].imagePath.replace(/^\/api\/store/, "")}`
+    : "/placeholder-image.jpg";
+
+  return (
+    <ProductCard>
+      {images.length > 0 ? (
+        <Box sx={{ height: "200px", width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <Image
+            src={imageErrors[item.id] ? "/placeholder-image.jpg" : imageUrl}
+            alt={item.name || "Продукт"}
+            width={280}
+            height={180}
+            style={{ objectFit: "contain", maxWidth: "100%", maxHeight: "100%" }}
+            onError={() => setImageErrors((prev) => ({ ...prev, [item.id]: true }))}
+            loading="lazy"
+          />
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            height: "200px",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: "#F5F5F5",
+            borderRadius: "10px",
+          }}
+        >
+          <Typography variant="body1" color="text.secondary">
+            Нет фото
+          </Typography>
+        </Box>
+      )}
+      <CardContent sx={{ flexGrow: 1, padding: "16px" }}>
+        <Typography
+          variant="h6"
+          component={Link}
+          href={`/product/${item.id}`}
+          sx={{
+            textDecoration: "none",
+            color: "#333333",
+            "&:hover": { color: "#ADD8E6" },
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {item.name || "Без названия"}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            display: "-webkit-box",
+            WebkitLineClamp: 1,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {item.Categories?.length > 0
+            ? item.Categories.map((cat) => cat.name).join(", ")
+            : "Без категории"}
+        </Typography>
+        <Typography
+          variant="body2"
+          mt={1}
+          sx={{
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {item.description || "Без описания"}
+        </Typography>
+        <Typography variant="body2" mt={1}>
+          Объем: {item.volume || "Не указан"}
+        </Typography>
+        <Typography variant="body2" mt={1}>
+          Наличие: {item.stock || 0} шт.
+        </Typography>
+      </CardContent>
+      <CardActions sx={{ p: 2, justifyContent: "space-between" }}>
+        <Typography variant="subtitle1" fontWeight="700">
+          {parseFloat(item.price || 0).toLocaleString()} ₸
+        </Typography>
+        <StyledButton
+          onClick={() => dispatch(addToCartProductAction(item))}
+          disabled={isInCart(item)}
+        >
+          {isInCart(item) ? "В корзине" : "Добавить"}
+        </StyledButton>
+      </CardActions>
+    </ProductCard>
+  );
+});
+
+
+const Row = ({ index, style, data }) => {
+  const rowItems = data.items[index];
+  return (
+    <div style={{ ...style, padding: '0.75rem 0 1.5rem 0' }}> {/* 12px сверху, 24px снизу */}
+      <Grid container spacing={3} justifyContent="center">
+        {rowItems.map((item) => (
+          <Grid item xs={12} sm={6} md={3} key={item.id}>
+            <ProductItem
+              item={item}
+              imageErrors={data.imageErrors}
+              setImageErrors={data.setImageErrors}
+              isInCart={data.isInCart}
+              dispatch={data.dispatch}
+            />
+          </Grid>
+        ))}
+        {rowItems.length < 4 &&
+          Array.from({ length: 4 - rowItems.length }).map((_, idx) => (
+            <Grid item xs={12} sm={6} md={3} key={`empty-${idx}`} />
+          ))}
+      </Grid>
+    </div>
+  );
+};
 
 const FilterDrawer = styled(Drawer)(({ theme }) => ({
   "& .MuiDrawer-paper": {
@@ -1033,6 +1287,113 @@ export default function Products() {
     ],
   };
 
+  // const Row = ({ index, style, data }) => {
+  //   const item = data[index];
+  //   const images = item.ProductImages || [];
+  //   const imageUrl = images.length > 0
+  //     ? `${BASE_URL.replace(/\/api\/store$/, "")}${images[0].imagePath.replace(/^\/api\/store/, "")}`
+  //     : "/placeholder-image.jpg";
+  
+  //   return (
+  //     <div style={{ ...style, padding: '12px', display: 'flex', justifyContent: 'center' }}>
+  //       <ProductCard>
+  //         {images.length > 0 ? (
+  //           <Box sx={{ height: "200px", width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+  //             <Image
+  //               src={imageErrors[item.id] ? "/placeholder-image.jpg" : imageUrl}
+  //               alt={item.name || "Продукт"}
+  //               width={280}
+  //               height={180}
+  //               style={{ objectFit: "contain", maxWidth: "100%", maxHeight: "100%" }}
+  //               onError={() => setImageErrors((prev) => ({ ...prev, [item.id]: true }))}
+  //               unoptimized
+  //             />
+  //           </Box>
+  //         ) : (
+  //           <Box
+  //             sx={{
+  //               height: "200px",
+  //               width: "100%",
+  //               display: "flex",
+  //               alignItems: "center",
+  //               justifyContent: "center",
+  //               bgcolor: "#F5F5F5",
+  //               borderRadius: "10px",
+  //             }}
+  //           >
+  //             <Typography variant="body1" color="text.secondary">
+  //               Нет фото
+  //             </Typography>
+  //           </Box>
+  //         )}
+  //         <CardContent sx={{ flexGrow: 1, padding: "16px" }}>
+  //           <Typography
+  //             variant="h6"
+  //             component={Link}
+  //             href={`/product/${item.id}`}
+  //             sx={{
+  //               textDecoration: "none",
+  //               color: "#333333",
+  //               "&:hover": { color: "#ADD8E6" },
+  //               display: "-webkit-box",
+  //               WebkitLineClamp: 2,
+  //               WebkitBoxOrient: "vertical",
+  //               overflow: "hidden",
+  //               textOverflow: "ellipsis",
+  //             }}
+  //           >
+  //             {item.name || "Без названия"}
+  //           </Typography>
+  //           <Typography
+  //             variant="body2"
+  //             sx={{
+  //               display: "-webkit-box",
+  //               WebkitLineClamp: 1,
+  //               WebkitBoxOrient: "vertical",
+  //               overflow: "hidden",
+  //               textOverflow: "ellipsis",
+  //             }}
+  //           >
+  //             {item.Categories?.length > 0
+  //               ? item.Categories.map((cat) => cat.name).join(", ")
+  //               : "Без категории"}
+  //           </Typography>
+  //           <Typography
+  //             variant="body2"
+  //             mt={1}
+  //             sx={{
+  //               display: "-webkit-box",
+  //               WebkitLineClamp: 3,
+  //               WebkitBoxOrient: "vertical",
+  //               overflow: "hidden",
+  //               textOverflow: "ellipsis",
+  //             }}
+  //           >
+  //             {item.description || "Без описания"}
+  //           </Typography>
+  //           <Typography variant="body2" mt={1}>
+  //             Объем: {item.volume || "Не указан"}
+  //           </Typography>
+  //           <Typography variant="body2" mt={1}>
+  //             Наличие: {item.stock || 0} шт.
+  //           </Typography>
+  //         </CardContent>
+  //         <CardActions sx={{ p: 2, justifyContent: "space-between" }}>
+  //           <Typography variant="subtitle1" fontWeight="700">
+  //             {parseFloat(item.price || 0).toLocaleString()} ₸
+  //           </Typography>
+  //           <StyledButton
+  //             onClick={() => dispatch(addToCartProductAction(item))}
+  //             disabled={isInCart(item)}
+  //           >
+  //             {isInCart(item) ? "В корзине" : "Добавить"}
+  //           </StyledButton>
+  //         </CardActions>
+  //       </ProductCard>
+  //     </div>
+  //   );
+  // };
+
   return (
     <Container maxWidth="lg" sx={{ py: 6, fontFamily: "Montserrat, sans-serif" }}>
       {/* Баннер */}
@@ -1095,150 +1456,57 @@ export default function Products() {
       </Stack>
 
       {/* Сетка продуктов */}
-      <Box mb={6} position="relative">
-        {loading && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 10,
-            }}
-          >
-            <CircularProgress sx={{ color: "#ADD8E6" }} size={60} />
-          </Box>
-        )}
-        <Grid container spacing={3} justifyContent="center">
-          {loading ? (
-            [...Array(8)].map((_, idx) => (
-              <Grid item xs={12} sm={6} md={3} key={idx}>
-                <Skeleton
-                  variant="rectangular"
-                  height={400}
-                  sx={{ borderRadius: "15px", width: "300px", margin: "0 auto" }}
-                />
-              </Grid>
-            ))
-          ) : currentItems.length === 0 ? (
-            <Grid item xs={12}>
-              <Typography variant="body1" color="#666666" textAlign="center">
-                Товары не найдены
-              </Typography>
-            </Grid>
-          ) : (
-            currentItems.map((item) => (
-              <Grid item xs={12} sm={6} md={3} key={item.id}>
-                <ProductCard
-                  // component={motion.div}
-                  // initial={{ y: 50, opacity: 0 }}
-                  // animate={{ y: 0, opacity: 1 }}
-                  // transition={{ delay: item.id * 0.1 }}
-                >
-                  {item.ProductImages?.length > 0 ? (
-                    <Box sx={{ height: "200px", width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                      <Image
-                        src={
-                          imageErrors[item.id]
-                            ? "/placeholder-image.jpg"
-                            : `${BASE_URL.replace(/\/api\/store$/, "")}${item.ProductImages[0].imagePath.replace(/^\/api\/store/, "")}`
-                        }
-                        alt={item.name || "Продукт"}
-                        width={280}
-                        height={180}
-                        style={{ objectFit: "contain", maxWidth: "100%", maxHeight: "100%" }}
-                        onError={() => setImageErrors((prev) => ({ ...prev, [item.id]: true }))}
-                        unoptimized
-                      />
-                    </Box>
-                  ) : (
-                    <Box
-                      sx={{
-                        height: "200px",
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        bgcolor: "#F5F5F5",
-                        borderRadius: "10px",
-                      }}
-                    >
-                      <Typography variant="body1" color="text.secondary">
-                        Нет фото
-                      </Typography>
-                    </Box>
-                  )}
-                
-                  <CardContent sx={{ flexGrow: 1, padding: "16px" }}>
-                  {/* <NaturalBadge>Натурально</NaturalBadge> */}
-                    <Typography
-                      variant="h6"
-                      component={Link}
-                      href={`/product/${item.id}`}
-                      sx={{
-                        textDecoration: "none",
-                        color: "#333333",
-                        "&:hover": { color: "#ADD8E6" },
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {item.name || "Без названия"}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 1,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {item.Categories?.length > 0
-                        ? item.Categories.map((cat) => cat.name).join(", ")
-                        : "Без категории"}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      mt={1}
-                      sx={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {item.description || "Без описания"}
-                    </Typography>
-                    <Typography variant="body2" mt={1}>
-                      Объем: {item.volume || "Не указан"}
-                    </Typography>
-                    <Typography variant="body2" mt={1}>
-                      Наличие: {item.stock || 0} шт.
-                    </Typography>
-                  </CardContent>
-                  <CardActions sx={{ p: 2, justifyContent: "space-between" }}>
-                    <Typography variant="subtitle1" fontWeight="700">
-                      {parseFloat(item.price || 0).toLocaleString()} ₸
-                    </Typography>
-                    <StyledButton
-                      onClick={() => dispatch(addToCartProductAction(item))}
-                      disabled={isInCart(item)}
-                    >
-                      {isInCart(item) ? "В корзине" : "Добавить"}
-                    </StyledButton>
-                  </CardActions>
-                </ProductCard>
-              </Grid>
-            ))
-          )}
+   
+
+<Box mb={6} position="relative">
+  {loading && (
+    <Box
+      sx={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        zIndex: 10,
+      }}
+    >
+      <CircularProgress sx={{ color: "#ADD8E6" }} size={60} />
+    </Box>
+  )}
+  {loading ? (
+    <Grid container spacing={3} justifyContent="center">
+      {[...Array(8)].map((_, idx) => (
+        <Grid item xs={12} sm={6} md={3} key={idx}>
+          <Skeleton
+            variant="rectangular"
+            height="35rem" // 400px / 16 = 25rem, но используем 35rem как в ProductCard
+            sx={{ borderRadius: "0.9375rem", width: "18.75rem", margin: "0 auto" }}
+          />
         </Grid>
-      </Box>
+      ))}
+    </Grid>
+  ) : currentItems.length === 0 ? (
+    <Typography variant="body1" color="#666666" textAlign="center">
+      Товары не найдены
+    </Typography>
+  ) : (
+    <FixedSizeList
+          height={600} // 37.5rem * 16 = 600px
+          width="100%"
+          itemCount={chunkArray(currentItems, 4).length}
+          itemSize={604} // 37.75rem * 16 = 604px
+          itemData={{
+            items: chunkArray(currentItems, 4),
+            imageErrors,
+            setImageErrors,
+            isInCart,
+            dispatch,
+          }}
+        >
+          {Row}
+  </FixedSizeList>
+  )}
+</Box>
+
 
       {/* Пагинация */}
       {totalPages > 1 && (
