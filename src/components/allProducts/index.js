@@ -190,6 +190,9 @@ export default function AllProducts() {
                 <StyledButton onClick={() => router.push(`/product/${product.id}`)}>
                   Подробнее
                 </StyledButton>
+                <StyledButton  onClick={() => router.push(`/edit-product/${product.id}`)}> 
+                  Редактировать
+                  </StyledButton>
                 <DeleteButton onClick={() => handleOpenModal(product.id)}>
                   Удалить
                 </DeleteButton>

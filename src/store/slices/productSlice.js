@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
-
+import END_POINT from "@/components/config";
 axios.defaults.timeout = 10000; // 10 секунд
 
 let initialState = {
@@ -106,7 +106,7 @@ export const userPostsSlice = createSlice({
     },
     getProductByIdReducer: (state, action) => {
       console.log('getProductByIdReducer called with payload:', action.payload);
-      state.editedProduct = action.payload[0];
+      state.editedProduct = action.payload; // Убрали [0], так как payload — это объект
     },
     isAuthReducer: (state, action) => {
       state.isAuth = action.payload;
@@ -312,7 +312,7 @@ export const editProductAction = (mainType, type, name, price, description, prod
     selectedFiles.forEach((file) => formData.append('image', file));
   }
   try {
-    const response = await axios.put(`${host}products/${productId}`, formData, {
+    const response = await axios.put(`${host}edit-product/${productId}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     dispatch(editProductReducer());
@@ -358,7 +358,7 @@ export const getProductByIdAction = (id) => async (dispatch) => {
   console.log('getProductByIdAction called with id:', id);
   const host = initialState.host;
   try {
-    const response = await axios.get(`${host}products/${id}`);
+    const response = await axios.get(`${host}product/${id}`);
     dispatch(getProductByIdReducer(response.data));
   } catch (error) {
     throw error;
